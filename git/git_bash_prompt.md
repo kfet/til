@@ -1,3 +1,5 @@
+## Git in Bash prompt
+
 How to see git repository status in your bash prompt (see the .sh file for zsh instructions)
 
 Save [git-prompt.sh](https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh) in `~/.bash/`
