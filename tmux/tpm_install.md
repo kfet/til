@@ -21,3 +21,8 @@ run '~/.tmux/plugins/tpm/tpm'
 ```bash
 tmux source ~/.tmux.conf
 ```
+
+Find a list of plugins to install here:
+https://github.com/tmux-plugins/list
+
+After adding a new plugin press `Ctrl+B I` to install it
