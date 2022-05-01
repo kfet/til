@@ -9,6 +9,9 @@ This TIL is for tpm plugins.
 set -g @plugin 'b0o/tmux-autoreload'
 set -g @plugin 'dracula/tmux'
 
-# Dracula settings
+# Dracula theme settings
+set -g @dracula-plugins "ram-usage cpu-usage network weather"
+set -g @dracula-cpu-usage-label "|"
+set -g @dracula-ram-usage-label "|"
 set -g @dracula-show-fahrenheit false
 ```
