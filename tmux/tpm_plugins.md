@@ -14,4 +14,5 @@ set -g @dracula-plugins "ram-usage cpu-usage network weather"
 set -g @dracula-cpu-usage-label "|"
 set -g @dracula-ram-usage-label "|"
 set -g @dracula-show-fahrenheit false
+set -g @dracula-show-left-icon ☁️
 ```
