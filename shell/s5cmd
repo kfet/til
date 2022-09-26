@@ -1,0 +1,10 @@
+# Install and use s5cmd
+
+`s5cmd` is a parallel S3 and local filesystem execution tool
+
+Install:
+```
+brew install peak/tap/s5cmd
+```
+
+Ref: [peak/s5cmd](https://github.com/peak/s5cmd)
