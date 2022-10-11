@@ -1,6 +1,6 @@
 # Install and use pipe-viewer (pv)
 
-Use in place of `cat`, `cp` to who progress, when operating on large files
+Use in place of `cat`, `cp` to show progress when operating on large files
 
 ```
 brew install pv
