@@ -11,4 +11,5 @@ Useful aliases `co` -> `checkout`, `cl` -> `clone`
 ```
 git config --global alias.co checkout
 git config --global alias.cl clone
+git config --global alias.wt worktree
 ```
