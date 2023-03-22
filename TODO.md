@@ -1,12 +1,11 @@
-# Ideas on how to make better us of such a TIL collection
+# Ideas on how to make better use of the TIL collection
 
-## Turn this collection into executable configuration.
+## Turn this collection into executable configuration(s)
 
-For example when setting up new environment do:
-`kfet.til config git` and it sets-up all git configurations, or
+For example, when setting up new environment:
+`kfet.til config git` could set-up all git configurations
 
-## Make it queriable locally
+## Make it searchable locally
 
 `kfet.til git` lits all git TILs
 `kfet.til git <til>` displays a specific TIL
-
