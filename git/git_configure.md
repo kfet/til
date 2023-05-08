@@ -13,3 +13,8 @@ git config --global alias.co checkout
 git config --global alias.cl clone
 git config --global alias.wt worktree
 ```
+
+Set pager to `bat`, if you have it installed
+```
+git config --global core.pager bat
+```
