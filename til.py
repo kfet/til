@@ -1,9 +1,14 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script --quiet
+
+# /// script
+# requires-python = ">=3.12"
+# ///
+
 """
 TIL CLI Tool - Manage Today I Learned entries
 
 A self-contained tool for working with TIL (Today I Learned) entries.
-Uses uv for dependency isolation when run through the 'til' shell script.
+Uses uv for dependency isolation.
 """
 import argparse
 import datetime
