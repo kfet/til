@@ -1,6 +1,5 @@
 # TIL Entry Format
 
-Date: 2024-02-24
 Tags: documentation, format, standard
 Platform: all
 
@@ -22,7 +21,6 @@ Each TIL entry should follow this structure:
 ```markdown
 # Title of TIL Entry
 
-Date: YYYY-MM-DD
 Tags: comma, separated, tags
 Platform: macos, linux, windows, all
 
@@ -72,7 +70,7 @@ The accompanying Python tool will:
 A GitHub Action will validate that each TIL entry:
 
 1. Starts with an H1 title
-2. Contains required metadata (Date, Tags, Platform)
+2. Contains required metadata (Tags, Platform)
 3. Has a Summary section
 4. Uses proper markdown formatting
 5. Has code blocks with language specifiers

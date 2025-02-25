@@ -11,7 +11,6 @@ A self-contained tool for working with TIL (Today I Learned) entries.
 Uses uv for dependency isolation.
 """
 import argparse
-import datetime
 import logging
 import os
 import re
@@ -137,11 +136,9 @@ class TILEntry:
     
     def __str__(self) -> str:
         tags = self.metadata.get('Tags', [])
-        date = self.metadata.get('Date', 'N/A')
         platform = self.metadata.get('Platform', 'all')
         
         return f"{self.title} ({self.path.relative_to(Path.cwd())})\n" \
-               f"Date: {date}, Platform: {platform}\n" \
                f"Tags: {', '.join(tags) if isinstance(tags, list) else tags}"
 
 
@@ -269,7 +266,7 @@ def validate_entry(entry: TILEntry) -> List[str]:
         errors.append("Missing H1 title")
     
     # Check required metadata
-    for field in ['Date', 'Tags', 'Platform']:
+    for field in ['Tags', 'Platform']:
         if field not in entry.metadata:
             errors.append(f"Missing {field} metadata")
     
@@ -452,14 +449,10 @@ def main():
                     logger.error(f"Error: File already exists: {filepath}")
                     return 1
                 
-                # Get current date in ISO format
-                today = datetime.datetime.now().strftime("%Y-%m-%d")
-                
                 # Create file content from template
                 current_platform = sys_platform.system().lower()
                 content = f"""# {args.title}
 
-Date: {today}
 Tags: 
 Platform: {current_platform}
 
