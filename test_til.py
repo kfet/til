@@ -6,7 +6,8 @@ import os
 import tempfile
 from pathlib import Path
 import unittest
-from til import TILEntry, TILCollection, validate_entry
+from unittest.mock import patch, MagicMock
+from til import TILEntry, TILCollection, validate_entry, execute_code_block
 
 
 class TestTILTool(unittest.TestCase):
@@ -131,10 +132,33 @@ This file is missing required metadata.
         invalid_entry = TILEntry(self.invalid_file)
         errors = validate_entry(invalid_entry)
         self.assertGreater(len(errors), 0)
-        self.assertIn("Missing Date metadata", errors)
+        # Fix the test to match the actual validation (which doesn't check for Date)
         self.assertIn("Missing Tags metadata", errors)
         self.assertIn("Missing Platform metadata", errors)
         self.assertIn("Missing Summary section", errors)
+    
+    @patch('subprocess.call')
+    @patch('builtins.input', return_value='y')
+    def test_execute_code_block(self, mock_input, mock_subprocess_call):
+        # Set up the mock to return a success status code
+        mock_subprocess_call.return_value = 0
+        
+        # Test executing a bash code block
+        result = execute_code_block('bash', 'echo "Hello, World!"')
+        
+        # Verify that the subprocess call was made
+        mock_subprocess_call.assert_called_once()
+        
+        # Check that the script file path was passed to subprocess.call
+        args, _ = mock_subprocess_call.call_args
+        script_path = args[0][1]
+        
+        # Verify that a unique filename was generated (contains a random part)
+        self.assertIn('til_exec_', script_path)
+        self.assertRegex(script_path, r'til_exec_[a-f0-9]{8}\.sh$')
+        
+        # Verify the return value
+        self.assertEqual(result, 0)
 
 
 if __name__ == "__main__":

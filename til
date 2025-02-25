@@ -219,14 +219,18 @@ class TILCollection:
 
 def execute_code_block(language: str, code: str) -> int:
     """Execute a code block based on its language"""
-    # Create a temporary script file
+    # Create a temporary script file with unique name
+    import tempfile
+    import uuid
+    
     temp_dir = Path(os.environ.get('TMPDIR', '/tmp'))
+    unique_id = uuid.uuid4().hex[:8]
     
     if language == 'bash' or language == 'sh':
-        script_file = temp_dir / 'til_exec.sh'
+        script_file = temp_dir / f'til_exec_{unique_id}.sh'
         interpreter = '/bin/bash'
     elif language == 'python':
-        script_file = temp_dir / 'til_exec.py'
+        script_file = temp_dir / f'til_exec_{unique_id}.py'
         interpreter = sys.executable
     else:
         print(f"Unsupported language: {language}", file=sys.stderr)
@@ -248,6 +252,7 @@ def execute_code_block(language: str, code: str) -> int:
         
         # Execute the script
         return subprocess.call([interpreter, str(script_file)])
+
     except Exception as e:
         print(f"Error executing code: {e}", file=sys.stderr)
         return 1
