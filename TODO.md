@@ -2,6 +2,10 @@
 
 ## Auto-update local installation in the background
 
+## Ignore til_cli folder while using the til tool
+
+## Syntax highlight when printing the MD files
+
 ## Turn this collection into executable configuration(s)
 
 For example, when setting up new environment:

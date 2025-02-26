@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import subprocess
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 import shutil
@@ -308,5 +309,88 @@ def get_til_repo_path():
             
     # Fallback to current directory
     return Path.cwd()
+
+
+def check_for_repo_updates(repo_path: Path, force: bool = False) -> bool:
+    """
+    Check if the TIL repository needs updating and update if necessary.
+    Returns True if an update was performed.
+    """
+    try:
+        # Skip if not a git repository
+        git_dir = repo_path / '.git'
+        if not git_dir.is_dir():
+            return False
+            
+        # Get last update check timestamp
+        timestamp_file = Path.home() / '.til_last_update'
+        current_time = time.time()
+        
+        # Check if we should update based on timestamp (every 12 hours)
+        if not force and timestamp_file.exists():
+            try:
+                last_update = float(timestamp_file.read_text().strip())
+                if current_time - last_update < 43200:  # 12 hours in seconds
+                    return False
+            except (ValueError, OSError):
+                # Invalid timestamp, continue with update check
+                pass
+                
+        # Check if update is needed using git
+        try:
+            # Fetch the latest changes
+            subprocess.run(
+                ['git', 'fetch', '--quiet'],
+                cwd=repo_path,
+                capture_output=True,
+                check=True,
+                timeout=5  # 5 second timeout to prevent hanging
+            )
+            
+            # Check if we're behind remote
+            result = subprocess.run(
+                ['git', 'rev-list', 'HEAD..@{upstream}', '--count'],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=2
+            )
+            
+            # If behind remote (result > 0), perform update
+            if int(result.stdout.strip()) > 0:
+                update_result = subprocess.run(
+                    ['git', 'pull', '--quiet'],
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if update_result.returncode == 0:
+                    # Update timestamp
+                    timestamp_file.write_text(str(current_time))
+                    logger.info("TIL repository updated to latest version.")
+                    return True
+                else:
+                    # Update failed but not critical, continue
+                    return False
+            else:
+                # No update needed, still update timestamp
+                timestamp_file.write_text(str(current_time))
+                return False
+                
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired) as e:
+            # Git command failed or timed out, log but continue
+            logger.debug(f"Git update check failed: {e}")
+            return False
+            
+    except Exception as e:
+        # Any other error, log but continue
+        logger.debug(f"Repository update check failed: {e}")
+        return False
+    
+    # Default: no update
+    return False
 
 
