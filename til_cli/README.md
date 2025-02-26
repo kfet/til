@@ -19,7 +19,7 @@ A command-line tool for managing Today I Learned entries.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/til.git
+git clone https://github.com/kfet/til.git
 cd til
 
 # Run the installer script
