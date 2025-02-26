@@ -1,9 +1,13 @@
 # Ideas on how to make better use of the TIL collection
 
+## Auto-update local installation in the background
+
 ## Turn this collection into executable configuration(s)
 
 For example, when setting up new environment:
 `kfet.til config git` could set-up all git configurations
+
+## ✅ Make it installable
 
 ## ✅ Make it searchable locally
 
