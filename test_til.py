@@ -7,7 +7,11 @@ import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch, MagicMock
-from til_cli.til import TILEntry, TILCollection, validate_entry, execute_code_block
+import sys
+
+# Add the parent directory to sys.path so we can import the til module
+sys.path.append(str(Path(__file__).parent))
+from til_cli.til_cli.til import TILEntry, TILCollection, validate_entry, execute_code_block
 
 
 class TestTILTool(unittest.TestCase):
