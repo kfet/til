@@ -1,2 +1,4 @@
 .DS_Store
 __pycache__/
+til_cli/build/
+til_cli/til_cli.egg-info/
