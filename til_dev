@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+"""Development launcher for TIL CLI tool"""
+
+import sys
+from pathlib import Path
+import os
+
+# Set up proper import paths for development
+parent_dir = Path(__file__).resolve().parent
+til_cli_dir = parent_dir / "til_cli"
+
+# Add til_cli directory to path so it can be found
+sys.path.insert(0, str(til_cli_dir))
+
+# Set environment variable for testing
+os.environ["TIL_REPO_PATH"] = str(parent_dir)
+
+# Import main directly from the module
+from til_cli.__main__ import main
+
+if __name__ == "__main__":
+    sys.exit(main())

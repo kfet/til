@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch, MagicMock
-from til import TILEntry, TILCollection, validate_entry, execute_code_block
+from til_cli.til import TILEntry, TILCollection, validate_entry, execute_code_block
 
 
 class TestTILTool(unittest.TestCase):

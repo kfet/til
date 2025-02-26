@@ -1,4 +1,4 @@
-# Configure remote TERM settings
+# Configure remote TERM settings to work with Ghostty
 
 Fix error "missing or unsuitable terminal: xterm-ghostty"
 
