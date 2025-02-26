@@ -2,6 +2,8 @@
 
 ## Auto-update local installation in the background
 
+## Auto-complete in shell
+
 ## Ignore til_cli folder while using the til tool
 
 ## Syntax highlight when printing the MD files
