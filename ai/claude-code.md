@@ -1,8 +1,5 @@
 # Install and use Claude Code
 
-Tags: 
-Platform: darwin
-
 ## Summary
 
 Install Claude Code on the local computer, follow the guide here for more detailed instructions:

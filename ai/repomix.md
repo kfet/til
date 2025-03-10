@@ -1,8 +1,5 @@
 # Install and use repomix
 
-Tags: 
-Platform: darwin
-
 ## Summary
 
 Repomix is a CLI tool to pack your code repo into a single file suitable in ingest as an LLM context.

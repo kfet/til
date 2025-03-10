@@ -4,7 +4,7 @@ A command-line tool for managing Today I Learned entries.
 
 ## Features
 
-- List TIL entries with filtering by tag or platform
+- List TIL entries with
 - Search TIL entries by keyword
 - Display TIL entries
 - Execute code blocks in TIL entries
@@ -66,12 +66,6 @@ til config $(pwd)
 # List all TIL entries
 til list
 
-# Filter entries by tag
-til list --tag git
-
-# Filter entries by platform
-til list --platform macos
-
 # Search for entries
 til search "git commit"
 
@@ -86,12 +80,6 @@ til create "Git Stash" --dir git
 
 # Validate all entries
 til validate
-
-# List all tags
-til tags
-
-# List all platforms
-til platforms
 
 # Update the repository
 til update

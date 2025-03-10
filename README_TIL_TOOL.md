@@ -33,7 +33,6 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
 - Execute code blocks from TIL entries
 - Validate TIL entries for proper formatting
 - Create new TIL entries with correct formatting
-- Browse entries by tags and platforms
 
 ## Usage
 
@@ -44,8 +43,6 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
 ### Commands
 
 - `list`: List all TIL entries
-  - `--tag TAG`: Filter by tag
-  - `--platform PLATFORM`: Filter by platform
 
 - `search TERM`: Search for TIL entries matching the given term
 
@@ -58,10 +55,6 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
 
 - `validate [ENTRY]`: Validate TIL entries for proper formatting
   - `ENTRY` (optional): File path or name/title (validates all entries if not specified)
-
-- `tags`: List all available tags
-
-- `platforms`: List all available platforms
 
 - `create TITLE [--dir DIRECTORY]`: Create a new TIL entry
   - `TITLE`: Title of the new entry

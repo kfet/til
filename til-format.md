@@ -1,8 +1,5 @@
 # TIL Entry Format
 
-Tags: documentation, format, standard
-Platform: all
-
 ## Summary
 
 This document describes the standardized format for Today I Learned (TIL) entries to make them both human-readable and machine-parsable for automated tools.
@@ -60,7 +57,7 @@ The accompanying Python tool will:
 
 1. Parse metadata from key-value pairs
 2. Extract executable blocks from sections tagged with "(executable)"
-3. Build search index using tags and content
+3. Build search index on content
 4. Provide commands to search, display, and execute configurations
 
 ## Validation
@@ -68,7 +65,6 @@ The accompanying Python tool will:
 A GitHub Action will validate that each TIL entry:
 
 1. Starts with an H1 title
-2. Contains required metadata (Tags, Platform)
-3. Has a Summary section
-4. Uses proper markdown formatting
-5. Has code blocks with language specifiers
+2. Has a Summary section
+3. Uses proper markdown formatting
+4. Has code blocks with language specifiers

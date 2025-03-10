@@ -1,8 +1,5 @@
 # Install aider AI pair programming CLI tool
 
-Tags: 
-Platform: darwin
-
 ## Summary
 
 Install the AI pair programming tool [aider](https://aider.chat)
