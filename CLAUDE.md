@@ -1,27 +1,28 @@
 # CLAUDE.md for TIL Repository
 
-## Repository Structure
-- Topic-specific directories (aws, git, shell, etc.)
-- Individual TIL entries as Markdown files within topic directories
+## Commands
+- Test: `python -m unittest test_til.py`
+- Test single test: `python -m unittest test_til.TestTILTool.test_til_entry_parsing`
+- Validate entries: `python -m til_cli.til_cli validate`
+- Run the TIL CLI: `python -m til_cli.til_cli <command>`
+
+## Code Style Guidelines
+- Python: Follow PEP 8 conventions
+- Use type hints for function parameters and return values
+- Error handling: Use try/except blocks with specific exceptions
+- Variable naming: snake_case for variables and functions
+- Class naming: PascalCase for classes
+- Imports: Standard library first, then third-party, then local modules
+- Docstrings: Multi-line docstrings with summary line, description, and args
 
 ## Markdown Formatting Conventions
 - Use descriptive filenames in lowercase with underscores (e.g., `git_configure.md`)
-- Start each file with a level 1 or level 2 heading describing the topic
+- Start each TIL file with a level 1 heading describing the topic
 - Use code blocks with backticks (```) for commands and code snippets
 - Specify language for syntax highlighting where applicable
-- Keep entries concise and focused on a single topic
+- Mark executable sections with "(executable)" in the heading
 
 ## File Organization
 - Group related TILs in topic-specific directories
-- Name files descriptively to indicate their content
 - Follow the pattern: `topic/specific_knowledge.md`
-
-## Content Guidelines
-- Focus on practical, actionable information
-- Include command examples where applicable
-- Explain the context or problem being solved
-- Keep entries brief but complete enough to be useful
-- Link to external references when appropriate using [text](URL) format
-
-## Markdown Preview
-- For macOS: `brew install --cask qlmarkdown`
+- Include a Summary section in every TIL entry

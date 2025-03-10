@@ -48,8 +48,6 @@ def main():
         
         # List command
         list_parser = subparsers.add_parser('list', help='List TIL entries')
-        list_parser.add_argument('--tag', help='Filter by tag')
-        list_parser.add_argument('--platform', help='Filter by platform')
         
         # Search command
         search_parser = subparsers.add_parser('search', help='Search TIL entries')
@@ -68,11 +66,7 @@ def main():
         validate_parser = subparsers.add_parser('validate', help='Validate TIL entries')
         validate_parser.add_argument('entry', nargs='?', help='Entry path (or all if not specified)')
         
-        # Tags command
-        subparsers.add_parser('tags', help='List all tags')
         
-        # Platforms command
-        subparsers.add_parser('platforms', help='List all platforms')
         
         # Create command
         create_parser = subparsers.add_parser('create', help='Create a new TIL entry')
@@ -125,13 +119,6 @@ def main():
         if args.command == 'list':
             entries = collection.entries
             
-            if args.tag:
-                entries = [e for e in entries if isinstance(e.metadata.get('Tags', []), list) and 
-                          args.tag in e.metadata.get('Tags', []) or 
-                          args.tag == e.metadata.get('Tags')]
-            
-            if args.platform:
-                entries = [e for e in entries if args.platform in e.metadata.get('Platform', '').split(',')]
             
             for entry in sorted(entries, key=lambda e: e.title):
                 print(entry)
@@ -199,17 +186,7 @@ def main():
             else:
                 return 1
         
-        elif args.command == 'tags':
-            tags = collection.get_tags()
-            print("Available tags:")
-            for tag in sorted(tags):
-                print(f"  {tag}")
         
-        elif args.command == 'platforms':
-            platforms = collection.get_platforms()
-            print("Available platforms:")
-            for platform in sorted(platforms):
-                print(f"  {platform}")
         
         elif args.command == 'create':
             try:
@@ -231,11 +208,7 @@ def main():
                     return 1
                 
                 # Create file content from template
-                current_platform = sys_platform.system().lower()
                 content = f"""# {args.title}
-
-Tags: 
-Platform: {current_platform}
 
 ## Summary
 

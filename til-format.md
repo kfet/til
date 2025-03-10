@@ -21,8 +21,6 @@ Each TIL entry should follow this structure:
 ```markdown
 # Title of TIL Entry
 
-Tags: comma, separated, tags
-Platform: macos, linux, windows, all
 
 ## Summary
 

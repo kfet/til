@@ -25,8 +25,6 @@ class TestTILTool(unittest.TestCase):
         self.sample_content = """# Sample TIL
 
 Date: 2024-02-24
-Tags: test, sample
-Platform: all
 
 ## Summary
 
@@ -70,8 +68,6 @@ This file is missing required metadata.
         # Check basic attributes
         self.assertEqual(entry.title, "Sample TIL")
         self.assertEqual(entry.metadata["Date"], "2024-02-24")
-        self.assertEqual(entry.metadata["Tags"], ["test", "sample"])
-        self.assertEqual(entry.metadata["Platform"], "all")
         
         # Check sections
         self.assertIn("Summary", entry.sections)
@@ -110,14 +106,7 @@ This file is missing required metadata.
         entry = collection.get_entry(str(self.sample_file))
         self.assertIsNotNone(entry)
         
-        # Test tags collection
-        tags = collection.get_tags()
-        self.assertIn("test", tags)
-        self.assertIn("sample", tags)
         
-        # Test platforms collection
-        platforms = collection.get_platforms()
-        self.assertIn("all", platforms)
     
     def test_validation(self):
         # Test validating a valid entry
@@ -136,9 +125,7 @@ This file is missing required metadata.
         invalid_entry = TILEntry(self.invalid_file)
         errors = validate_entry(invalid_entry)
         self.assertGreater(len(errors), 0)
-        # Fix the test to match the actual validation (which doesn't check for Date)
-        self.assertIn("Missing Tags metadata", errors)
-        self.assertIn("Missing Platform metadata", errors)
+        # Fix the test to match the actual validation
         self.assertIn("Missing Summary section", errors)
     
     @patch('subprocess.call')

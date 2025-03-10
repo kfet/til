@@ -51,10 +51,8 @@ class TILEntry:
                 match = re.match(metadata_pattern, line)
                 if match:
                     key, value = match.groups()
-                    if key == 'Tags':
-                        self.metadata[key] = [tag.strip() for tag in value.split(',')]
-                    else:
-                        self.metadata[key] = value.strip()
+                    # Store all metadata as strings for simplicity
+                    self.metadata[key] = value.strip()
             
             # Extract sections and executable sections
             section_pattern = r'^## (.+?)( \(executable\))?$'
@@ -129,11 +127,7 @@ class TILEntry:
         return False
     
     def __str__(self) -> str:
-        tags = self.metadata.get('Tags', [])
-        platform = self.metadata.get('Platform', 'all')
-        
-        return f"{self.title} ({self.path.relative_to(self.path.parent.parent)})\n" \
-               f"Tags: {', '.join(tags) if isinstance(tags, list) else tags}"
+        return f"{self.title} ({self.path.relative_to(self.path.parent.parent)})"
 
 
 class TILCollection:
@@ -188,27 +182,7 @@ class TILCollection:
         
         return None
     
-    def get_tags(self) -> Set[str]:
-        """Get all unique tags from the collection"""
-        tags = set()
-        for entry in self.entries:
-            entry_tags = entry.metadata.get('Tags', [])
-            if isinstance(entry_tags, list):
-                tags.update(entry_tags)
-            else:
-                tags.add(entry_tags)
-        return tags
     
-    def get_platforms(self) -> Set[str]:
-        """Get all unique platforms from the collection"""
-        platforms = set()
-        for entry in self.entries:
-            platform = entry.metadata.get('Platform', '')
-            if ',' in platform:
-                platforms.update(p.strip() for p in platform.split(','))
-            else:
-                platforms.add(platform)
-        return platforms
 
 
 def execute_code_block(language: str, code: str) -> int:
@@ -264,10 +238,6 @@ def validate_entry(entry: TILEntry) -> List[str]:
     if not entry.title:
         errors.append("Missing H1 title")
     
-    # Check required metadata
-    for field in ['Tags', 'Platform']:
-        if field not in entry.metadata:
-            errors.append(f"Missing {field} metadata")
     
     # Check Summary section
     if 'Summary' not in entry.sections:
