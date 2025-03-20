@@ -15,10 +15,21 @@ echo "============================================="
 if ! command -v pipx &> /dev/null; then
     echo "Installing pipx..."
     pip install --user pipx
-    pipx ensurepath
     
     # Add pipx to PATH for this session
     export PATH="$PATH:$HOME/.local/bin"
+    
+    # Verify pipx is now available
+    if ! command -v pipx &> /dev/null; then
+        echo "Error: pipx installation succeeded but command not found in PATH"
+        echo "Please run the following commands manually and try again:"
+        echo "  export PATH=\"\$PATH:\$HOME/.local/bin\""
+        echo "  pipx ensurepath"
+        exit 1
+    fi
+    
+    # Now that pipx is in PATH, ensure paths are set up
+    pipx ensurepath
 fi
 
 # Clone the repository if not already done

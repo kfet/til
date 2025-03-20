@@ -15,7 +15,6 @@ import platform as sys_platform  # Rename to avoid conflicts
 
 # Import core functionality
 from til_cli.til import (
-    TILEntry,
     TILCollection,
     execute_code_block,
     validate_entry,
@@ -49,7 +48,7 @@ def main():
             dest='command', help='Command to run')
 
         # List command
-        list_parser = subparsers.add_parser('list', help='List TIL entries')
+        subparsers.add_parser('list', help='List TIL entries')
 
         # Search command
         search_parser = subparsers.add_parser(
@@ -85,10 +84,11 @@ def main():
         # Config command
         config_parser = subparsers.add_parser(
             'config', help='Configure TIL repository location')
-        config_parser.add_argument('path', help='Path to TIL repository')
+        config_parser.add_argument(
+            'path', nargs='?', help='Path to TIL repository')
 
         # Update command
-        update_parser = subparsers.add_parser(
+        subparsers.add_parser(
             'update', help='Update TIL repository with latest changes')
 
         # Add global repo-path argument
@@ -110,15 +110,21 @@ def main():
         # Handle config command (This must be handled before initializing the collection)
         if args.command == 'config':
             config_path = Path.home() / '.tilconfig'
-            repo_path = Path(args.path).resolve()
+            if args.path:
+                repo_path = Path(args.path).resolve()
 
-            if not repo_path.is_dir():
-                logger.error(f"Error: Not a valid directory: {repo_path}")
-                return 1
+                if not repo_path.is_dir():
+                    logger.error(f"Error: Not a valid directory: {repo_path}")
+                    return 1
 
-            config_path.write_text(str(repo_path))
-            print(f"TIL repository path set to: {repo_path}")
-            return 0
+                config_path.write_text(str(repo_path))
+                print(f"TIL repository path set to: {repo_path}")
+                return 0
+
+            elif config_path.exists():
+                repo_path = Path(config_path.read_text().strip())
+                print(f"TIL repository path: {repo_path}")
+                return 0
 
         # Automatically update repository if needed
         auto_update_repository(root_dir, args.command)
