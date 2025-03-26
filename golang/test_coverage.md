@@ -1,4 +1,4 @@
-## Report Go test coverage for all packages
+# Report Go test coverage for all packages
 
 Write coverage to file `cover.out` and then print a report based on it
 ```

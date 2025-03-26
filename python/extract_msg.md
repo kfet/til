@@ -1,4 +1,4 @@
-## Extract Outlook msg files
+# Extract Outlook msg files
 
 Use [msg-extractor](https://github.com/TeamMsgExtractor/msg-extractor) to extract Outlook msg files
 

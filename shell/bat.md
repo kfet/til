@@ -1,4 +1,4 @@
-## Use bat instead of cat
+# Use bat instead of cat
 
 Use the [bat](https://github.com/sharkdp/bat) tool as a drop-in replacement of `cat`.
 

@@ -1,4 +1,4 @@
-## Start Jupyter Notebook
+# Start Jupyter Notebook
 
 How to start Jupyter Notebook
 

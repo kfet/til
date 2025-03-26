@@ -1,5 +1,4 @@
-## Create a new tmux session only if one does not exist
-
+# Create a new tmux session only if one does not exist
 
 `cat ~/.tmux.conf`
 ```

@@ -1,4 +1,4 @@
-## Install pipx
+# Install pipx
 
 Ubuntu:
 ```

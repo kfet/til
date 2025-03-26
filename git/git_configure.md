@@ -1,4 +1,4 @@
-## Git configure defaults
+# Git configure defaults
 
 Specify `--rebase` by default when doing `git pull`
 

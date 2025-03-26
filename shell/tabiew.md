@@ -1,15 +1,15 @@
-## Use Tabiew to inspect CSV files
+# Use Tabiew to inspect CSV files
 
 Use the [Tabiew](https://github.com/shshemi/tabiew) tool to inspect CSV files.
 
 Works also on tsv and parquet files.
 
-### Installation:
+## Installation:
 https://github.com/shshemi/tabiew#macos
 
 * macOs: `brew install tabiew`
 
-### Usage:
+## Usage:
 
 Open file
 ```bash

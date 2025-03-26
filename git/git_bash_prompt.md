@@ -1,4 +1,4 @@
-## Git in Bash prompt
+# Git in Bash prompt
 
 How to see git repository status in your bash prompt (see the .sh file for zsh instructions)
 

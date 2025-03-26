@@ -1,4 +1,4 @@
-## List tmux key bindings
+# List tmux key bindings
 
 Here's how to list all the current key-bindings of tmux.
 

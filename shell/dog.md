@@ -1,4 +1,4 @@
-## Use dog instead of dig
+# Use dog instead of dig
 
 Use the [dog](https://github.com/ogham/dog) tool as a user-friendly version of `dig`.
 

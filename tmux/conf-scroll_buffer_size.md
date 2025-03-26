@@ -1,4 +1,4 @@
-## Increase tmux scroll buffer size
+# Increase tmux scroll buffer size
 
 Set scroll-buffer size to 50000 lines
 

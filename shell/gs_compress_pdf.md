@@ -1,4 +1,4 @@
-## Use Ghostscript to compress PDF files
+# Use Ghostscript to compress PDF files
 
 On macOs
 ```
@@ -11,7 +11,7 @@ brew install ghostcript
 * `/screen` Lower quality output (72 dpi) but smallest possible output file size.
 
 ```
-gs 
+gs
  -q -dNOPAUSE -dBATCH -dSAFER \
  -sDEVICE=pdfwrite \
  -dCompatibilityLevel=1.4 \

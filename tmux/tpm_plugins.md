@@ -1,4 +1,4 @@
-## Common tpm plugins and configuration to add
+# Common tpm plugins and configuration to add
 
 See [tpm_install.md](tpm_install.md) for installing tmux plugin manager tpm.
 

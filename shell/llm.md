@@ -1,4 +1,4 @@
-## Install the LLM CLI tool
+# Install the LLM CLI tool
 
 Detailed guildes [here](https://llm.datasette.io)
 

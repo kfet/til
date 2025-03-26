@@ -1,4 +1,4 @@
-## Bind function keys for window management
+# Bind function keys for window management
 
 Add this to the tmux configuration to use F2/3/4 and alt(opt)-left/right keys
 

@@ -1,4 +1,4 @@
-## Use FFMPEG to cut and concatenate MP4 files
+# Use FFMPEG to cut and concatenate MP4 files
 
 Cut out a portion of a video (starting at 40m 14s, 2m duration) and save it in another file:
 ```

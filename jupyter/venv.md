@@ -1,4 +1,4 @@
-## Create a kernel running in a python venv
+# Create a kernel running in a python venv
 
 Activate the venv, and then run the following (customize name as needed):
 ```bash

@@ -1,4 +1,4 @@
-## Configure environment per directory
+# Configure environment per directory
 
 [direnv](https://direnv.net) is a self-contained binary tool, which allows setting-up shell environemnt per directory. It hooks into the shell prompt evaluation.
 

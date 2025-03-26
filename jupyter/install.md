@@ -1,4 +1,4 @@
-## Install Jupyter Notebook
+# Install Jupyter Notebook
 
 How to install the classic Jupyter Notebook
 
