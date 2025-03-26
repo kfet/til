@@ -71,13 +71,6 @@ def main():
         validate_parser.add_argument(
             'entry', nargs='?', help='Entry path (or all if not specified)')
 
-        # Create command
-        create_parser = subparsers.add_parser(
-            'create', help='Create a new TIL entry')
-        create_parser.add_argument('title', help='Title of the entry')
-        create_parser.add_argument(
-            '--dir', help='Directory to create the entry in')
-
         # Version command
         subparsers.add_parser('version', help='Show version information')
 
@@ -202,45 +195,6 @@ def main():
             if all_valid:
                 print("All entries valid!")
             else:
-                return 1
-
-        elif args.command == 'create':
-            try:
-                # Determine directory
-                if args.dir:
-                    directory = root_dir / args.dir
-                    if not directory.exists():
-                        directory.mkdir(parents=True)
-                else:
-                    directory = root_dir
-
-                # Create filename from title
-                filename = args.title.lower().replace(' ', '_') + '.md'
-                filepath = directory / filename
-
-                # Don't overwrite existing files
-                if filepath.exists():
-                    logger.error(f"Error: File already exists: {filepath}")
-                    return 1
-
-                # Create file content from template
-                content = f"""# {args.title}
-
-## Summary
-
-Brief summary goes here.
-
-## Details
-
-Details go here.
-
-"""
-
-                # Write file
-                filepath.write_text(content)
-                print(f"Created new TIL entry: {filepath}")
-            except Exception as e:
-                logger.error(f"Error creating TIL entry: {e}")
                 return 1
 
         elif args.command == 'update':

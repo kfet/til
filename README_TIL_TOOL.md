@@ -32,7 +32,6 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
 - Search, list, and view TIL entries
 - Execute code blocks from TIL entries
 - Validate TIL entries for proper formatting
-- Create new TIL entries with correct formatting
 
 ## Usage
 
@@ -55,10 +54,6 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
 
 - `validate [ENTRY]`: Validate TIL entries for proper formatting
   - `ENTRY` (optional): File path or name/title (validates all entries if not specified)
-
-- `create TITLE [--dir DIRECTORY]`: Create a new TIL entry
-  - `TITLE`: Title of the new entry
-  - `--dir DIRECTORY`: Directory to create the entry in (optional)
 
 - `version`: Show version information about the tool
 
@@ -98,9 +93,4 @@ Execute the Install section of an entry:
 Validate all entries:
 ```
 ./til validate
-```
-
-Create a new entry:
-```
-./til create "Using grep with context" --dir shell
 ```

@@ -9,7 +9,6 @@ A command-line tool for managing Today I Learned entries.
 - Display TIL entries
 - Execute code blocks in TIL entries
 - Validate TIL entries against formatting requirements
-- Create new TIL entries with templates
 - Update repository with latest changes
 - Configure repository location
 
@@ -74,9 +73,6 @@ til show git/git_worktree.md
 
 # Execute a section in a TIL entry
 til execute git/git_worktree.md "Setup"
-
-# Create a new entry
-til create "Git Stash" --dir git
 
 # Validate all entries
 til validate
