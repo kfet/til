@@ -8,10 +8,12 @@ Topics are folders, individual entries are [MD](https://www.markdownguide.org) f
 
 # Local installation
 
+From a local clone
 ```bash
-# From a local clone
 ./install.sh
+```
 
-# Or directly from GitHub
+Or directly from GitHub
+```bash
 curl -sSL https://raw.githubusercontent.com/kfet/til/main/install.sh | bash
-```%
+```
