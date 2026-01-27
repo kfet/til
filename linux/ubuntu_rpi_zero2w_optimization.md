@@ -4,6 +4,10 @@ Ubuntu 24.04 on a Pi Zero 2W consumes significantly more resources than Raspbian
 
 ---
 
+Before proceeding make sure to apply `tmux/attach_on_ssh.md` and `tmux/conf-create_tmux_session_if_none.md`, which will allow long running tasks to continue even if the ssh gets disconnected.
+
+---
+
 ## Phase 1: Disable Unnecessary Services
 
 ```bash
@@ -156,13 +160,28 @@ EOF
 
 ---
 
-## Phase 7: Tune VM Settings
+## Phase 7: Enable Swap and Tune VM Settings
+
+The Pi Zero 2W has only 512 MB RAM. A swap file prevents OOM kills during memory spikes.
+
+```bash
+# Create a 1GB swap file
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Make persistent across reboots
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
 
 ```bash
 # Lower swappiness for low RAM systems (default is 60)
 echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf
 sudo sysctl -w vm.swappiness=10
 ```
+
+**Note**: `swappiness=10` keeps the system preferring RAM and only swaps under pressure. On an SD card, minimizing swap writes extends card lifespan.
 
 ---
 
@@ -208,6 +227,9 @@ After optimization, these services remain:
 ## Verification Commands
 
 ```bash
+# Check swap
+swapon --show
+
 # Check memory usage
 free -h
 
