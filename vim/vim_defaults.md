@@ -1,5 +1,7 @@
 ## My preferred VIM defaults
 
+If $VIMRUNTIME/defaults.vim does not exist make sure `vim` is installed, and not just vim-tiny or similar.
+
 * pull-in the defaults that most users want
 * setup pasting
 * tabs, backspace
