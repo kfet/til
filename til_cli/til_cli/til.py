@@ -118,14 +118,26 @@ class TILEntry:
             if term in content.lower():
                 return True
 
-        # Check filename
-        if term in self.path.stem.lower():
+        # Check filename / slug
+        if term in self.path.stem.lower() or term in self.slug.lower():
             return True
 
         return False
 
+    @property
+    def slug(self) -> str:
+        """Stable identifier for this entry.
+
+        For skill entries (``skills/<slug>/SKILL.md``) this is the
+        containing directory name. For legacy single-file entries it
+        falls back to the file stem.
+        """
+        if self.path.name == 'SKILL.md':
+            return self.path.parent.name
+        return self.path.stem
+
     def __str__(self) -> str:
-        return f"{self.title} ({self.path.relative_to(self.path.parent.parent)})"
+        return f"{self.title} ({self.slug})"
 
 
 class TILCollection:
@@ -154,8 +166,14 @@ class TILCollection:
         return [entry for entry in self.entries if entry.matches_search(term)]
 
     def get_entry(self, path_or_name: str) -> Optional[TILEntry]:
-        """Get a TIL entry by path or name"""
-        # Try as path first
+        """Get a TIL entry by path, slug, or name"""
+        # Try as slug (preferred identifier for skills)
+        name_lower = path_or_name.lower()
+        for entry in self.entries:
+            if entry.slug.lower() == name_lower:
+                return entry
+
+        # Try as path
         try:
             path = Path(path_or_name)
             if not path.is_absolute():
@@ -167,15 +185,16 @@ class TILCollection:
         except:
             pass
 
-        # Try as title or partial match
-        name_lower = path_or_name.lower()
+        # Try as exact title
         for entry in self.entries:
             if entry.title.lower() == name_lower:
                 return entry
 
-        # Try partial match on title or filename
+        # Try partial match on slug, title or filename
         for entry in self.entries:
-            if name_lower in entry.title.lower() or name_lower in entry.path.stem.lower():
+            if (name_lower in entry.slug.lower()
+                    or name_lower in entry.title.lower()
+                    or name_lower in entry.path.stem.lower()):
                 return entry
 
         return None

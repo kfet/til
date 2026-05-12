@@ -108,6 +108,27 @@ This file is missing required metadata.
         
         
     
+    def test_slug_for_skill_entries(self):
+        # Skill entries live at skills/<slug>/SKILL.md; slug must be the dir name.
+        skill_dir = self.test_dir / "shell-epoch-timestamp"
+        skill_dir.mkdir()
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text("# Convert epoch timestamp\n\nBody.\n")
+
+        entry = TILEntry(skill_file)
+        self.assertEqual(entry.slug, "shell-epoch-timestamp")
+        self.assertEqual(str(entry), "Convert epoch timestamp (shell-epoch-timestamp)")
+
+        # Legacy single-file entries fall back to the file stem.
+        legacy = TILEntry(self.sample_file)
+        self.assertEqual(legacy.slug, "sample")
+
+        # Collection lookup by slug works for skills.
+        collection = TILCollection(self.test_dir)
+        found = collection.get_entry("shell-epoch-timestamp")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.path, skill_file)
+
     def test_validation(self):
         # Test validating a valid entry
         valid_entry = TILEntry(self.sample_file)
