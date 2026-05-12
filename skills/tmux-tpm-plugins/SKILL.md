@@ -1,0 +1,28 @@
+---
+name: tmux-tpm-plugins
+description: "Common tpm plugins and configuration to add. TIL note about tmux. Use when working with tmux and the user mentions tpm plugins or related topics."
+---
+
+# Common tpm plugins and configuration to add
+
+See [tpm_install.md](tpm_install.md) for installing tmux plugin manager tpm.
+
+This TIL is for tpm plugins.
+
+NOTE: tmux-autoreload requires `entr`:
+```
+sudo apt install entr
+```
+
+`cat ~/.tmux.conf`
+```
+set -g @plugin 'b0o/tmux-autoreload'
+set -g @plugin 'dracula/tmux'
+
+# Dracula theme settings
+set -g @dracula-plugins "ram-usage cpu-usage network weather"
+set -g @dracula-cpu-usage-label "|"
+set -g @dracula-ram-usage-label "|"
+set -g @dracula-show-fahrenheit false
+set -g @dracula-show-left-icon ☁️
+```
