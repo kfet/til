@@ -5,6 +5,6 @@ description: "Resize video file using ffmpeg. TIL note about ffmpeg. Use when wo
 
 # Resize video file using ffmpeg
 
-```
+```bash
 ffmpeg -s 640x360 -c:a copy output.avi -i input.avi
 ```

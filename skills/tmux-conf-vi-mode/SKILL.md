@@ -7,7 +7,7 @@ description: "Use vi mode. TIL note about tmux. Use when working with tmux and t
 
 `cat ~/.tmux.conf`
 
-```
+```tmux
 # set vi mode
 set -g status-keys vi
 set -g mode-keys vi

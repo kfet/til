@@ -12,7 +12,7 @@ Configures LED behavior:
 ## Setup
 
 ### 1. Add to `/boot/firmware/config.txt`:
-```
+```conf
 dtparam=act_led_trigger=mmc0
 ```
 

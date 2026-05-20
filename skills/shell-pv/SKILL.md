@@ -7,15 +7,15 @@ description: "Install and use pipe-viewer (pv). TIL note about shell. Use when w
 
 Use in place of `cat`, `cp` to show progress when operating on large files
 
-```
+```bash
 brew install pv
 ```
 
-```
+```bash
 cat /dev/urandom | pv --size 100M > /dev/null
 ```
 
-```
+```bash
 pv /path/to/large-file > /path/to/destination
 ```
 

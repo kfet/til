@@ -11,7 +11,7 @@ bun install -g @mariozechner/pi-coding-agent
 ```
 
 Configure Ghostty key bindings (in Ghostty press cmd+,)
-```
+```conf
 ## Add to ghostty config
 keybind = alt+backspace=text:\x1b\x7f
 keybind = shift+enter=text:\n

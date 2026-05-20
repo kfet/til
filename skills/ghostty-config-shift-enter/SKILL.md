@@ -9,7 +9,7 @@ Ghostty uses the kitty keyboard protocol and can send `\e[13;2u` for Shift+Enter
 
 `~/.config/ghostty/config` or `~/Library/Application Support/com.mitchellh.ghostty/config`
 
-```
+```conf
 keybind = shift+enter=text:\x1b[13;2u
 keybind = shift+space=text:\x20
 ```

@@ -8,7 +8,7 @@ description: "Install and use s5cmd. TIL note about shell. Use when working with
 `s5cmd` is a parallel S3 and local filesystem execution tool
 
 Install:
-```
+```bash
 brew install peak/tap/s5cmd
 ```
 

@@ -6,6 +6,6 @@ description: "Use git worktree to work on multiple branches simultaneously. TIL 
 # Use git worktree to work on multiple branches simultaneously
 
 Checkout `test` branch into directory `../test-worktree`
-```
+```bash
 git worktree add ../test-worktree test
 ```

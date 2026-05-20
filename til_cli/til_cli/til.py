@@ -347,17 +347,30 @@ def validate_entry(entry: TILEntry) -> List[str]:
         if 'Summary' not in entry.sections:
             errors.append("Missing Summary section")
 
-    # Common: code blocks must have a language specifier. Scan the full
-    # body (not just ``## Section`` content) so blocks under the ``#`` title
-    # are checked too.
+    # Common: code blocks must have a language specifier. Walk fences
+    # line-by-line so a stray backtick inside a code block can't mask
+    # the opening fence.
     try:
         raw = entry.path.read_text()
     except OSError:
         raw = ''
     _, body_for_blocks = TILEntry._split_frontmatter(raw)
-    for lang, _ in re.findall(r'```(\w*)([^`]*)```', body_for_blocks):
-        if not lang:
-            errors.append("Code block missing language specifier")
+    in_block = False
+    open_lang: Optional[str] = None
+    for line in body_for_blocks.splitlines():
+        m = re.match(r'^```([A-Za-z0-9_-]*)\s*$', line)
+        if not m:
+            continue
+        if not in_block:
+            in_block = True
+            open_lang = m.group(1)
+        else:
+            in_block = False
+            if not open_lang:
+                errors.append("Code block missing language specifier")
+            open_lang = None
+    if in_block:
+        errors.append("Unclosed code block (missing closing ```)")
 
     return errors
 

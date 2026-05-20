@@ -297,6 +297,39 @@ This file is missing frontmatter and a level-1 heading.
         errors = validate_entry(TILEntry(no_lang_dir / "SKILL.md"))
         self.assertTrue(any("language" in e.lower() for e in errors),
                         f"expected language-specifier error, got {errors!r}")
+
+        # Stray backtick inside a tagged code block must not mask
+        # detection of fence boundaries.
+        stray_dir = self.test_dir / "skills" / "stray-tick"
+        stray_dir.mkdir(parents=True)
+        (stray_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: stray-tick\n"
+            "description: \"Stray. Use when.\"\n"
+            "---\n\n"
+            "# Stray\n\n"
+            "```bash\nwget http://example.com/foo.tar.gz`\n```\n\n"
+            "```\necho second\n```\n"
+        )
+        errors = validate_entry(TILEntry(stray_dir / "SKILL.md"))
+        self.assertTrue(any("language" in e.lower() for e in errors),
+                        f"stray backtick masked second-block detection: "
+                        f"{errors!r}")
+
+        # Unclosed code block must be reported.
+        unclosed_dir = self.test_dir / "skills" / "unclosed"
+        unclosed_dir.mkdir(parents=True)
+        (unclosed_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: unclosed\n"
+            "description: \"Unclosed. Use when.\"\n"
+            "---\n\n"
+            "# Unclosed\n\n"
+            "```bash\necho hi\n"
+        )
+        errors = validate_entry(TILEntry(unclosed_dir / "SKILL.md"))
+        self.assertTrue(any("unclosed" in e.lower() for e in errors),
+                        f"expected unclosed-fence error, got {errors!r}")
     
     @patch('subprocess.call')
     @patch('builtins.input', return_value='y')
@@ -385,6 +418,70 @@ This file is missing frontmatter and a level-1 heading.
 
         # Unknown slug -> no output, no error.
         self.assertEqual(run("sections", "no-such-slug"), [])
+
+
+class TestRenderer(unittest.TestCase):
+    """Renderer selection rules for ``til show``."""
+
+    def test_plain_flag_disables_renderer(self):
+        from til_cli.til_cli.render import pick_renderer
+        self.assertIsNone(pick_renderer(plain=True, tty=True, env={}))
+
+    def test_non_tty_disables_renderer(self):
+        from til_cli.til_cli.render import pick_renderer
+        self.assertIsNone(pick_renderer(tty=False, env={}))
+
+    def test_no_color_disables_renderer(self):
+        from til_cli.til_cli.render import pick_renderer
+        self.assertIsNone(
+            pick_renderer(tty=True, env={"NO_COLOR": "1"}))
+
+    def test_til_renderer_plain_disables_renderer(self):
+        from til_cli.til_cli.render import pick_renderer
+        for value in ("plain", "PLAIN", "none", "off", ""):
+            self.assertIsNone(
+                pick_renderer(tty=True, env={"TIL_RENDERER": value}),
+                f"value={value!r} should yield plain output")
+
+    def test_auto_picks_first_available(self):
+        from til_cli.til_cli import render as render_mod
+        # Force ``glow`` available, ``bat`` not — auto must pick glow.
+        with patch.object(render_mod.shutil, "which",
+                          side_effect=lambda n:
+                          "/usr/bin/glow" if n == "glow" else None):
+            argv = render_mod.pick_renderer(
+                tty=True, env={"TIL_RENDERER": "auto"})
+        self.assertIsNotNone(argv)
+        self.assertEqual(argv[0], "/usr/bin/glow")
+
+    def test_explicit_choice_returns_none_if_missing(self):
+        from til_cli.til_cli import render as render_mod
+        with patch.object(render_mod.shutil, "which", return_value=None):
+            self.assertIsNone(render_mod.pick_renderer(
+                tty=True, env={"TIL_RENDERER": "bat"}))
+
+    def test_til_show_plain_flag_end_to_end(self):
+        """`til show --plain` emits raw markdown to a pipe."""
+        import subprocess
+        til_launcher = Path(__file__).parent / "til"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            skill_dir = tmp_path / "skills" / "sample"
+            skill_dir.mkdir(parents=True)
+            content = (
+                "---\nname: sample\n"
+                "description: \"Sample. Use when.\"\n"
+                "---\n\n# Sample\n\nBody text.\n"
+            )
+            (skill_dir / "SKILL.md").write_text(content)
+
+            out = subprocess.check_output(
+                [str(til_launcher), "--repo-path", str(tmp_path),
+                 "show", "--plain", "sample"],
+                text=True,
+            )
+        self.assertIn("# Sample", out)
+        self.assertIn("Body text.", out)
 
 
 if __name__ == "__main__":

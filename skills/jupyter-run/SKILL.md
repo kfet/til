@@ -8,6 +8,6 @@ description: "Start Jupyter Notebook. TIL note about jupyter. Use when working w
 How to start Jupyter Notebook
 
 On a specific port (e.g. `7777`):
-```
+```bash
 jupyter notebook --port 777
 ```

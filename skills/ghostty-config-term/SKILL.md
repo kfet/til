@@ -7,11 +7,11 @@ description: "Configure remote TERM settings to work with Ghostty. TIL note abou
 
 Fix error "missing or unsuitable terminal: xterm-ghostty"
 
-```
+```bash
 infocmp -x | ssh YOUR-SERVER -- tic -x -
 ```
 
 Alternatively for a quick workaround
-```
+```bash
 export TERM=xterm-256color
 ```

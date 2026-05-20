@@ -13,11 +13,11 @@ pip install pipenv
 ```
 
 add dependency (e.g. `requests`):
-```
+```bash
 pipenv install requests
 ```
 
 configure direnv
-```
+```bash
 echo 'layout pipenv' >> .envrc
 ```

@@ -11,6 +11,6 @@ description: "Configure theme. TIL note about hx. Use when working with hx and t
 ## In the cofnig
 `:config-open`
 
-```
+```conf
 theme = "dracula_at_night"
 ```

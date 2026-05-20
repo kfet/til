@@ -7,12 +7,12 @@ description: "Enable MD quicklook preview. TIL note about macos. Use when workin
 
 
 Install [QLMarkdown](https://github.com/sbarex/QLMarkdown)
-```
+```bash
 brew install --cask qlmarkdown
 ```
 
 Enable running QLMarkdown
-```
+```bash
 xattr -r -d com.apple.quarantine "/Applications/QLMarkdown.app"
 ```
 

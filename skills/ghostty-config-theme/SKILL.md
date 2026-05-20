@@ -6,11 +6,11 @@ description: "Configure theme. TIL note about ghostty. Use when working with gho
 # Configure theme
 
 List themes:
-```
+```bash
 ghostty +list-themes  
 ```
 
 `config`:
-```
+```conf
 theme = dracula
 ```

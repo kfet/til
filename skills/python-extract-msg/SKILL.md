@@ -7,6 +7,6 @@ description: "Extract Outlook msg files. TIL note about python. Use when working
 
 Use [msg-extractor](https://github.com/TeamMsgExtractor/msg-extractor) to extract Outlook msg files
 
-```
+```bash
 python3 -m extract_msg example.msg
 ```

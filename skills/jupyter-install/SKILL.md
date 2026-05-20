@@ -11,6 +11,6 @@ NOTE: if you just do `sudo apt install jupyter-notebook` there will be features 
 
 Reference: https://jupyter.org/install
 
-```
+```bash
 pip3 install notebook
 ```

@@ -10,12 +10,12 @@ See [tpm_install.md](tpm_install.md) for installing tmux plugin manager tpm.
 This TIL is for tpm plugins.
 
 NOTE: tmux-autoreload requires `entr`:
-```
+```bash
 sudo apt install entr
 ```
 
 `cat ~/.tmux.conf`
-```
+```tmux
 set -g @plugin 'b0o/tmux-autoreload'
 set -g @plugin 'dracula/tmux'
 

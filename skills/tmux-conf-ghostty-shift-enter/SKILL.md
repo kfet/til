@@ -14,7 +14,7 @@ For the Ghostty side, see: `ghostty/config-shift_enter.md`.
 
 `~/.tmux.conf`
 
-```
+```tmux
 # Pass through extended keys (kitty protocol) to inner applications
 set -s extended-keys always
 set -as terminal-features 'xterm-ghostty*:extkeys'

@@ -3,7 +3,7 @@ name: vim-vim-defaults
 description: "Vim Defaults. TIL note about vim. Use when working with vim and the user mentions vim defaults or related topics."
 ---
 
-## My preferred VIM defaults
+# My preferred VIM defaults
 
 If $VIMRUNTIME/defaults.vim does not exist make sure `vim` is installed, and not just vim-tiny or similar.
 
@@ -17,7 +17,7 @@ If $VIMRUNTIME/defaults.vim does not exist make sure `vim` is installed, and not
 ----
 `cat ~/.vimrc`:
 
-```
+```vim
 " Get the defaults that most users want
 source $VIMRUNTIME/defaults.vim
 

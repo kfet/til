@@ -6,14 +6,14 @@ description: "Install and maintain nvm using the oh-my-zsh zsh-nvm plugin. TIL n
 # Install and maintain nvm using the oh-my-zsh zsh-nvm plugin
 
 Clone zsh-nvm
-```
+```bash
 git clone https://github.com/lukechilds/zsh-nvm ~/.oh-my-zsh/custom/plugins/zsh-nvm
 ```
 
 Add `zsh-nvm` to the plugins list
 
 `cat ~/.zshrc`:
-```
+```bash
 plugins=(git zsh-nvm)
 ```
 

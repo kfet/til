@@ -6,8 +6,8 @@ description: "Use Ghostscript to compress PDF files. TIL note about shell. Use w
 # Use Ghostscript to compress PDF files
 
 On macOs
-```
-brew install ghostcript
+```bash
+brew install ghostscript
 ```
 
 `dPDFSETTINGS` option values:
@@ -15,7 +15,7 @@ brew install ghostcript
 * `/ebook` Medium quality output (150 dpi) with moderate output file size
 * `/screen` Lower quality output (72 dpi) but smallest possible output file size.
 
-```
+```bash
 gs
  -q -dNOPAUSE -dBATCH -dSAFER \
  -sDEVICE=pdfwrite \

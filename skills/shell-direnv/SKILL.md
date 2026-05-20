@@ -17,17 +17,17 @@ Here's how to use direnv:
 
 
 Add environment to `.env` or `.envrc` in a directory
-```
+```bash
 echo "export TEST=foo" > .envrc
 ```
 
 Allow `direnv` to use it
-```
+```bash
 direnv allow
 ```
 
 Try it out
-```
+```bash
 cd ..
 echo $TEST
 cd -

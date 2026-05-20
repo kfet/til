@@ -9,7 +9,7 @@ Add this to the tmux configuration to use F2/3/4 and alt(opt)-left/right keys
 
 `cat ~/.tmux.conf`
 
-```
+```tmux
 # bind function keys for window management
 bind-key -n F2 new-window -c '#{pane_current_path}'
 bind-key -n F3 previous-window

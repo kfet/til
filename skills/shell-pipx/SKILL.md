@@ -6,16 +6,16 @@ description: "Install pipx. TIL note about shell. Use when working with shell an
 # Install pipx
 
 Ubuntu:
-```
+```bash
 sudo apt install pipx
 ```
 
 macOs:
-```
-bres install pipx
+```bash
+brew install pipx
 ```
 
 Upgrade pipx to latest version
-```
+```bash
 pipx install --force pipx
 ```

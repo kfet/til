@@ -7,6 +7,6 @@ description: "Find the processes listening on port. TIL note about shell. Use wh
 
 Find the processes listening on a given port number using the `lsof` command.
 
-```
+```bash
 lsof -i :<port>
 ```

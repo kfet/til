@@ -6,6 +6,6 @@ description: "Configure Ghostty to pass opt as alt. TIL note about ghostty. Use 
 # Configure Ghostty to pass opt as alt
 
 `config`:
-```
+```conf
 macos-option-as-alt = true
 ```

@@ -9,7 +9,7 @@ Put the following in an executable file in `/etc/cron.daily`
 
 `cat /etc/cron.daily/docker-images`:
 
-```
+```sh
 #!/bin/sh
 
 # Pull latest version of all images

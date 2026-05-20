@@ -9,18 +9,18 @@ Here's how to list all the current key-bindings of tmux.
 
 Best used when piped to a viewer or editor like `vi` or `less` for easy search.
 
-```
+```bash
 tmux list-keys
 ```
 
 For quick access from withint a `tmux` session:
 
-```
+```text
 <prefix>:list-keys
 ```
 
 or just
 
-```
+```text
 <prefix>?
 ```

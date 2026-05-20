@@ -11,7 +11,7 @@ Save [git-prompt.sh](https://raw.githubusercontent.com/git/git/master/contrib/co
 
 Add to `.bashrc`:
 
-```
+```bash
 source ~/.bash/git-prompt.sh # Show git branch name at command prompt
 export GIT_PS1_SHOWCOLORHINTS=true # Option for git-prompt.sh to show branch name in color
 
@@ -19,7 +19,7 @@ export GIT_PS1_SHOWCOLORHINTS=true # Option for git-prompt.sh to show branch nam
  export PROMPT_COMMAND='__git_ps1 "\u@\h \W" "\\\$ "' # Git branch (relies on git-prompt.sh)
 ```
 
-```
+```bash
 # Set these to non-empty to enable by defaut. See git-prompt.sh for more.
 export GIT_PS1_SHOWDIRTYSTATE="Y"
 export GIT_PS1_SHOWSTASHSTATE="Y"

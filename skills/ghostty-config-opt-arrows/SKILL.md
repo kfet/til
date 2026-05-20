@@ -8,7 +8,7 @@ description: "Configure Ghostty to pass opt+arrows to child proc. TIL note about
 For example allow passing tmux bindigs for M+Left/Right:
 
 `config`:
-```
+```conf
 keybind = alt+left=unbind
 keybind = alt+right=unbind
 ```
