@@ -19,10 +19,18 @@ class TestTILTool(unittest.TestCase):
         # Create a temporary directory for test files
         self.temp_dir = tempfile.TemporaryDirectory()
         self.test_dir = Path(self.temp_dir.name)
-        
-        # Create a sample TIL entry file
-        self.sample_file = self.test_dir / "sample.md"
-        self.sample_content = """# Sample TIL
+
+        # Sample skill fixture — lives at skills/<slug>/SKILL.md, the only
+        # layout the loader recognises.
+        self.sample_dir = self.test_dir / "skills" / "sample"
+        self.sample_dir.mkdir(parents=True)
+        self.sample_file = self.sample_dir / "SKILL.md"
+        self.sample_content = """---
+name: sample
+description: "Sample TIL. Use when testing the TIL CLI."
+---
+
+# Sample TIL
 
 Date: 2024-02-24
 
@@ -45,16 +53,14 @@ echo "This is a test install command"
 How to use the sample.
 """
         self.sample_file.write_text(self.sample_content)
-        
-        # Create an invalid TIL entry file
-        self.invalid_file = self.test_dir / "invalid.md"
-        self.invalid_content = """# Invalid TIL
 
-Missing required metadata
+        # Invalid skill fixture — missing frontmatter, slug mismatch, no H1.
+        self.invalid_dir = self.test_dir / "skills" / "invalid"
+        self.invalid_dir.mkdir(parents=True)
+        self.invalid_file = self.invalid_dir / "SKILL.md"
+        self.invalid_content = """## No top-level heading
 
-## No Summary Section
-
-This file is missing required metadata.
+This file is missing frontmatter and a level-1 heading.
 """
         self.invalid_file.write_text(self.invalid_content)
     
@@ -88,30 +94,74 @@ This file is missing required metadata.
     def test_til_collection(self):
         # Create a collection from the test directory
         collection = TILCollection(self.test_dir)
-        
-        # Check that entries were loaded
+
+        # Check that entries were loaded (the two skills fixtures).
         self.assertEqual(len(collection.entries), 2)
-        
+
         # Test search functionality
         results = collection.search("sample")
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].title, "Sample TIL")
-        
-        # Test get_entry functionality
+
+        # Test get_entry by slug
         entry = collection.get_entry("sample")
         self.assertIsNotNone(entry)
         self.assertEqual(entry.title, "Sample TIL")
-        
-        # Test getting by path
+
+        # Test getting by absolute path
         entry = collection.get_entry(str(self.sample_file))
         self.assertIsNotNone(entry)
-        
-        
+
+    def test_collection_ignores_non_skill_files(self):
+        """Loader must only pick up skills/<slug>/SKILL.md."""
+        # Top-level Markdown that isn't a skill.
+        (self.test_dir / "README.md").write_text("# Project README\n")
+        (self.test_dir / "LICENSE.md").write_text("# License\n")
+        # Markdown in a sibling tool subdir.
+        sub = self.test_dir / "til_cli"
+        sub.mkdir()
+        (sub / "README.md").write_text("# CLI README\n")
+        (sub / "LICENSE.md").write_text("# CLI License\n")
+        # Stray Markdown directly under skills/ that is not a SKILL.md.
+        (self.test_dir / "skills" / "stray.md").write_text("# Stray\n")
+        # Nested skill that doesn't match the skills/<slug>/SKILL.md shape.
+        nested = self.test_dir / "skills" / "deep" / "nested"
+        nested.mkdir(parents=True)
+        (nested / "SKILL.md").write_text("# Nested\n")
+
+        collection = TILCollection(self.test_dir)
+        titles = {e.title for e in collection.entries}
+
+        # Only the two fixtures created in setUp under skills/<slug>/SKILL.md.
+        self.assertEqual(len(collection.entries), 2)
+        for forbidden in ("Project README", "License", "CLI README",
+                          "CLI License", "Stray", "Nested"):
+            self.assertNotIn(forbidden, titles)
+
+    def test_skill_without_h1_falls_back_to_description(self):
+        """Skills whose body has no level-1 heading still appear in listings."""
+        skill_dir = self.test_dir / "skills" / "vim-defaults"
+        skill_dir.mkdir(parents=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text(
+            "---\n"
+            "name: vim-defaults\n"
+            "description: \"Vim Defaults. Use when configuring vim.\"\n"
+            "---\n\n"
+            "## My preferred VIM defaults\n\n"
+            "Body without an H1.\n"
+        )
+
+        collection = TILCollection(self.test_dir)
+        found = collection.get_entry("vim-defaults")
+        self.assertIsNotNone(found)
+        # No H1 -> title falls back to the description's lead phrase.
+        self.assertEqual(found.title, "Vim Defaults")
     
     def test_slug_for_skill_entries(self):
         # Skill entries live at skills/<slug>/SKILL.md; slug must be the dir name.
-        skill_dir = self.test_dir / "shell-epoch-timestamp"
-        skill_dir.mkdir()
+        skill_dir = self.test_dir / "skills" / "shell-epoch-timestamp"
+        skill_dir.mkdir(parents=True)
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Convert epoch timestamp\n\nBody.\n")
 
@@ -129,25 +179,102 @@ This file is missing required metadata.
         self.assertIsNotNone(found)
         self.assertEqual(found.path, skill_file)
 
+        # Repository-relative paths work.
+        found = collection.get_entry("skills/shell-epoch-timestamp/SKILL.md")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.path, skill_file)
+
+        # Old search output omitted the leading skills/ directory; keep
+        # accepting copied results from that output.
+        found = collection.get_entry("shell-epoch-timestamp/SKILL.md")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.path, skill_file)
+
     def test_validation(self):
-        # Test validating a valid entry
+        # Valid skill should pass cleanly.
         valid_entry = TILEntry(self.sample_file)
-        
-        # Instead of trying to force the test to pass, let's modify our expectations
-        # to match what the validator actually needs to check
-        
-        # Our validation function has issues with the format of our test data
-        # but the important part is that it correctly validates real entries
-        # Let's just skip the validation for this test file
-        
-        self.assertIsNotNone(valid_entry)
-        
-        # Test validating an invalid entry
+        self.assertEqual(validate_entry(valid_entry), [])
+
+        # Invalid fixture is missing frontmatter and has no H1 — both
+        # should be reported.
         invalid_entry = TILEntry(self.invalid_file)
         errors = validate_entry(invalid_entry)
-        self.assertGreater(len(errors), 0)
-        # Fix the test to match the actual validation
-        self.assertIn("Missing Summary section", errors)
+        self.assertTrue(any("frontmatter" in e.lower() for e in errors),
+                        f"expected a frontmatter error, got {errors!r}")
+
+    def test_validation_skill_format(self):
+        """Validator enforces the skills/<slug>/SKILL.md frontmatter spec."""
+        # name mismatched with directory.
+        skill_dir = self.test_dir / "skills" / "shell-foo"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: shell-bar\n"
+            "description: \"Foo. Use when foo-ing.\"\n"
+            "---\n\n"
+            "# Foo\n"
+        )
+        errors = validate_entry(TILEntry(skill_dir / "SKILL.md"))
+        self.assertTrue(any("name" in e.lower() and "match" in e.lower()
+                            for e in errors),
+                        f"expected name-mismatch error, got {errors!r}")
+
+        # name contains invalid characters.
+        bad_chars_dir = self.test_dir / "skills" / "Bad_Name"
+        bad_chars_dir.mkdir(parents=True)
+        (bad_chars_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: Bad_Name\n"
+            "description: \"Bad. Use when bad.\"\n"
+            "---\n\n"
+            "# Bad\n"
+        )
+        errors = validate_entry(TILEntry(bad_chars_dir / "SKILL.md"))
+        self.assertTrue(any("lowercase" in e.lower() or "letters" in e.lower()
+                            or "characters" in e.lower() for e in errors),
+                        f"expected name-charset error, got {errors!r}")
+
+        # description over the 1024-char limit.
+        long_desc_dir = self.test_dir / "skills" / "long-desc"
+        long_desc_dir.mkdir(parents=True)
+        (long_desc_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: long-desc\n"
+            f"description: \"{'x' * 1100}\"\n"
+            "---\n\n"
+            "# Long\n"
+        )
+        errors = validate_entry(TILEntry(long_desc_dir / "SKILL.md"))
+        self.assertTrue(any("1024" in e or "long" in e.lower() for e in errors),
+                        f"expected description-length error, got {errors!r}")
+
+        # Missing description.
+        no_desc_dir = self.test_dir / "skills" / "no-desc"
+        no_desc_dir.mkdir(parents=True)
+        (no_desc_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: no-desc\n"
+            "---\n\n"
+            "# No desc\n"
+        )
+        errors = validate_entry(TILEntry(no_desc_dir / "SKILL.md"))
+        self.assertTrue(any("description" in e.lower() for e in errors),
+                        f"expected missing-description error, got {errors!r}")
+
+        # Code block with no language specifier.
+        no_lang_dir = self.test_dir / "skills" / "no-lang"
+        no_lang_dir.mkdir(parents=True)
+        (no_lang_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: no-lang\n"
+            "description: \"No lang. Use when.\"\n"
+            "---\n\n"
+            "# No lang\n\n"
+            "```\necho hi\n```\n"
+        )
+        errors = validate_entry(TILEntry(no_lang_dir / "SKILL.md"))
+        self.assertTrue(any("language" in e.lower() for e in errors),
+                        f"expected language-specifier error, got {errors!r}")
     
     @patch('subprocess.call')
     @patch('builtins.input', return_value='y')
@@ -171,6 +298,39 @@ This file is missing required metadata.
         
         # Verify the return value
         self.assertEqual(result, 0)
+
+
+    def test_completion_helper(self):
+        """`til _complete` emits stable lists for shell completion."""
+        import subprocess
+        til_launcher = Path(__file__).parent / "til"
+
+        def run(*extra: str) -> List[str]:
+            out = subprocess.check_output(
+                [str(til_launcher), "--repo-path", str(self.test_dir),
+                 "_complete", *extra],
+                text=True,
+            )
+            return [line for line in out.splitlines() if line]
+
+        cmds = run("commands")
+        self.assertIn("list", cmds)
+        self.assertIn("show", cmds)
+        self.assertIn("execute", cmds)
+        # The helper itself stays hidden.
+        self.assertNotIn("_complete", cmds)
+
+        slugs = run("slugs")
+        self.assertIn("sample", slugs)
+        self.assertIn("invalid", slugs)
+
+        sections = run("sections", "sample")
+        self.assertIn("Install", sections)
+        # Non-executable sections are not offered.
+        self.assertNotIn("Summary", sections)
+
+        # Unknown slug -> no output, no error.
+        self.assertEqual(run("sections", "no-such-slug"), [])
 
 
 if __name__ == "__main__":

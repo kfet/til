@@ -28,53 +28,87 @@ class TILEntry:
         self.path = path
         self.title = ""
         self.metadata = {}
+        self.frontmatter = {}
         self.sections = {}
         self.executable_sections = set()
         self._parse()
+
+    @staticmethod
+    def _split_frontmatter(content: str) -> Tuple[dict, str]:
+        """Strip a leading ``---``-delimited YAML-ish frontmatter block.
+
+        Returns ``(frontmatter_dict, remaining_body)``. Only ``key: value``
+        pairs on single lines are recognised — enough for SKILL.md, no
+        dependency on PyYAML.
+        """
+        if not content.startswith('---\n') and not content.startswith('---\r\n'):
+            return {}, content
+        # Locate the closing fence on its own line.
+        fm_match = re.match(r'^---\r?\n(.*?)\r?\n---\r?\n?', content, re.DOTALL)
+        if not fm_match:
+            return {}, content
+        raw = fm_match.group(1)
+        body = content[fm_match.end():]
+        fm: dict = {}
+        for line in raw.splitlines():
+            kv = re.match(r'^([A-Za-z_][\w-]*):\s*(.*)$', line)
+            if not kv:
+                continue
+            key, value = kv.group(1), kv.group(2).strip()
+            # Drop surrounding matching quotes.
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+            fm[key] = value
+        return fm, body
 
     def _parse(self):
         """Parse the TIL entry file to extract metadata and sections"""
         try:
             content = self.path.read_text()
 
-            # Extract title (first H1)
-            title_match = re.search(r'^# (.+)$', content, re.MULTILINE)
+            # Frontmatter (skill format).
+            self.frontmatter, body = self._split_frontmatter(content)
+
+            # Title cascade: first H1 in body, else description lead phrase,
+            # else slug. Skills with valid frontmatter but no H1 still get a
+            # usable display title.
+            title_match = re.search(r'^# (.+)$', body, re.MULTILINE)
             if title_match:
                 self.title = title_match.group(1).strip()
+            elif self.frontmatter.get('description'):
+                # Lead phrase of the description, terminated by ``.`` or ``;``.
+                desc = self.frontmatter['description']
+                lead = re.split(r'[.;]\s', desc, maxsplit=1)[0].strip()
+                self.title = lead or self.slug
+            else:
+                self.title = self.slug
 
-            # Extract metadata (key-value pairs after title)
+            # Legacy ``Key: value`` metadata (after the optional H1).
             metadata_pattern = r'^([A-Za-z]+):\s*(.+)$'
-            for line in content.split('\n'):
+            for line in body.split('\n'):
                 match = re.match(metadata_pattern, line)
                 if match:
                     key, value = match.groups()
-                    # Store all metadata as strings for simplicity
                     self.metadata[key] = value.strip()
 
-            # Extract sections and executable sections
+            # Extract sections and executable sections from the body.
             section_pattern = r'^## (.+?)( \(executable\))?$'
             current_section = None
-            section_content = []
+            section_content: List[str] = []
 
-            for line in content.split('\n'):
+            for line in body.split('\n'):
                 match = re.match(section_pattern, line)
                 if match:
-                    # Save previous section if it exists
                     if current_section:
                         self.sections[current_section] = '\n'.join(
                             section_content)
-
-                    # Start new section
                     current_section = match.group(1).strip()
                     section_content = []
-
-                    # Check if executable
                     if match.group(2):
                         self.executable_sections.add(current_section)
                 elif current_section:
                     section_content.append(line)
 
-            # Save last section
             if current_section:
                 self.sections[current_section] = '\n'.join(section_content)
 
@@ -149,48 +183,61 @@ class TILCollection:
         self._load_entries()
 
     def _load_entries(self):
-        """Load all TIL entries from the repository"""
-        md_files = self.root_dir.glob('**/*.md')
+        """Load TIL entries from the repository.
 
-        for file_path in md_files:
-            # Skip certain files like README.md, TODO.md, etc.
-            if file_path.name in ('README.md', 'TODO.md', 'CLAUDE.md', 'til-format.md', 'til-installable.md'):
-                continue
-
+        Only ``skills/<slug>/SKILL.md`` is recognised — everything else
+        (README, LICENSE, tool docs, stray Markdown) is ignored.
+        """
+        pattern = 'skills/*/SKILL.md'
+        for file_path in sorted(self.root_dir.glob(pattern)):
             entry = TILEntry(file_path)
-            if entry.title:  # Only add valid entries with a title
-                self.entries.append(entry)
+            self.entries.append(entry)
 
     def search(self, term: str) -> List[TILEntry]:
         """Search for TIL entries matching the given term"""
         return [entry for entry in self.entries if entry.matches_search(term)]
 
     def get_entry(self, path_or_name: str) -> Optional[TILEntry]:
-        """Get a TIL entry by path, slug, or name"""
-        # Try as slug (preferred identifier for skills)
-        name_lower = path_or_name.lower()
+        """Get a TIL entry by slug, repository path, or title."""
+        requested = path_or_name.strip()
+        if not requested:
+            return None
+        name_lower = requested.lower()
+
+        # 1) Exact slug.
         for entry in self.entries:
             if entry.slug.lower() == name_lower:
                 return entry
 
-        # Try as path
-        try:
-            path = Path(path_or_name)
-            if not path.is_absolute():
-                path = self.root_dir / path
+        # 2) Path match. Accept absolute paths, repository-relative paths
+        #    (``skills/<slug>/SKILL.md``), and trailing-component matches
+        #    (``<slug>/SKILL.md``) since older search output omitted the
+        #    leading ``skills/`` directory.
+        req_path = Path(requested)
+        req_parts = req_path.parts
+        for entry in self.entries:
+            if req_path.is_absolute():
+                try:
+                    if entry.path.resolve() == req_path.resolve():
+                        return entry
+                except OSError:
+                    pass
+                continue
+            try:
+                rel_parts = entry.path.relative_to(self.root_dir).parts
+            except ValueError:
+                rel_parts = entry.path.parts
+            if rel_parts == req_parts:
+                return entry
+            if len(req_parts) > 1 and rel_parts[-len(req_parts):] == req_parts:
+                return entry
 
-            for entry in self.entries:
-                if entry.path == path:
-                    return entry
-        except:
-            pass
-
-        # Try as exact title
+        # 3) Exact title.
         for entry in self.entries:
             if entry.title.lower() == name_lower:
                 return entry
 
-        # Try partial match on slug, title or filename
+        # 4) Partial match on slug, title, or filename.
         for entry in self.entries:
             if (name_lower in entry.slug.lower()
                     or name_lower in entry.title.lower()
@@ -246,26 +293,69 @@ def execute_code_block(language: str, code: str) -> int:
 
 
 def validate_entry(entry: TILEntry) -> List[str]:
-    """Validate a TIL entry against formatting requirements"""
-    errors = []
+    """Validate a TIL entry against the Agent Skill spec.
 
-    # Check title
-    if not entry.title:
-        errors.append("Missing H1 title")
+    Applies to ``skills/<slug>/SKILL.md`` files. Legacy single-file entries
+    keep the older "must have an H1 and a Summary section" checks.
+    """
+    errors: List[str] = []
+    is_skill = entry.path.name == 'SKILL.md'
 
-    # Check Summary section
-    if 'Summary' not in entry.sections:
-        errors.append("Missing Summary section")
+    if is_skill:
+        # Frontmatter must exist for skill entries.
+        if not entry.frontmatter:
+            errors.append("Missing frontmatter block (--- ... ---)")
+        else:
+            name = entry.frontmatter.get('name', '')
+            description = entry.frontmatter.get('description', '')
+            dir_name = entry.path.parent.name
 
-    # Check code blocks have language specifiers
-    for section, content in entry.sections.items():
-        if '```' in content:
-            # Using regex to find complete code blocks with start and end delimiters
-            code_blocks = re.findall(r'```(\w*)(.*?)```', content, re.DOTALL)
-            for lang, _ in code_blocks:
-                if not lang:
+            if not name:
+                errors.append("Frontmatter missing 'name'")
+            else:
+                if name != dir_name:
                     errors.append(
-                        f"Code block in section '{section}' missing language specifier")
+                        f"Frontmatter 'name' ({name!r}) must match the "
+                        f"directory name ({dir_name!r})")
+                if not re.fullmatch(r'[a-z0-9-]{1,64}', name):
+                    errors.append(
+                        "Frontmatter 'name' must be lowercase letters, "
+                        "digits, or hyphens (\u22641\u201364 characters)")
+
+            if not description:
+                errors.append("Frontmatter missing 'description'")
+            elif len(description) > 1024:
+                errors.append(
+                    f"Frontmatter 'description' is too long "
+                    f"({len(description)} chars; limit is 1024)")
+
+        # The body must start with a level-1 heading per the skill spec.
+        try:
+            body_text = entry.path.read_text()
+        except OSError as exc:
+            errors.append(f"Cannot read file: {exc}")
+            body_text = ''
+        _, body = TILEntry._split_frontmatter(body_text)
+        if not re.search(r'^# .+', body, re.MULTILINE):
+            errors.append("Body must start with a level-1 heading (# ...)")
+    else:
+        # Legacy single-file entry: keep the older sanity checks.
+        if not entry.title:
+            errors.append("Missing H1 title")
+        if 'Summary' not in entry.sections:
+            errors.append("Missing Summary section")
+
+    # Common: code blocks must have a language specifier. Scan the full
+    # body (not just ``## Section`` content) so blocks under the ``#`` title
+    # are checked too.
+    try:
+        raw = entry.path.read_text()
+    except OSError:
+        raw = ''
+    _, body_for_blocks = TILEntry._split_frontmatter(raw)
+    for lang, _ in re.findall(r'```(\w*)([^`]*)```', body_for_blocks):
+        if not lang:
+            errors.append("Code block missing language specifier")
 
     return errors
 

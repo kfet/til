@@ -33,10 +33,13 @@ logger = logging.getLogger("til")
 
 def auto_update_repository(repo_path, command):
     """Automatically update repository if needed based on command type"""
-    if command != 'update':
-        # Only force update for commands that depend on content
-        force_update = command in ['list', 'search', 'show', 'execute']
-        check_for_repo_updates(repo_path, force=force_update)
+    if command in ('update', '_complete'):
+        # 'update' handles its own pull. '_complete' must stay fast and
+        # side-effect-free.
+        return
+    # Only force update for commands that depend on content
+    force_update = command in ['list', 'search', 'show', 'execute']
+    check_for_repo_updates(repo_path, force=force_update)
 
 
 def main():
@@ -84,6 +87,17 @@ def main():
         subparsers.add_parser(
             'update', help='Update TIL repository with latest changes')
 
+        # Hidden completion helper used by the shell completion scripts in
+        # ``completions/``.  Emits one candidate per line, no decorations.
+        complete_parser = subparsers.add_parser(
+            '_complete', help=argparse.SUPPRESS)
+        complete_parser.add_argument(
+            'what', choices=('commands', 'slugs', 'sections'),
+            help='Kind of completion to emit')
+        complete_parser.add_argument(
+            'entry', nargs='?',
+            help="Slug or path (only used when 'what' is 'sections')")
+
         # Add global repo-path argument
         parser.add_argument('--repo-path', help='Path to TIL repository')
 
@@ -117,6 +131,33 @@ def main():
             elif config_path.exists():
                 repo_path = Path(config_path.read_text().strip())
                 print(f"TIL repository path: {repo_path}")
+                return 0
+
+        # Handle the hidden completion subcommand before any auto-update
+        # work — completion must be cheap and side-effect-free, and must
+        # not trigger ``git fetch``.
+        if args.command == '_complete':
+            collection_cache = None
+            if args.what == 'commands':
+                # Public, user-facing subcommands only (skip the helper).
+                for cmd in ('list', 'search', 'show', 'execute', 'validate',
+                            'version', 'config', 'update'):
+                    print(cmd)
+                return 0
+            collection_cache = TILCollection(root_dir)
+            if args.what == 'slugs':
+                for entry in sorted(collection_cache.entries,
+                                    key=lambda e: e.slug):
+                    print(entry.slug)
+                return 0
+            if args.what == 'sections':
+                if not args.entry:
+                    return 0
+                entry = collection_cache.get_entry(args.entry)
+                if not entry:
+                    return 0
+                for section in entry.executable_sections:
+                    print(section)
                 return 0
 
         # Automatically update repository if needed
