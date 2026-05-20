@@ -100,7 +100,10 @@ maybe_install_completion() {
                 return 0
             fi
             read -r -p "Install shell completion (bash/zsh)? [y/N] " yn
-            [[ "$yn" =~ ^[Yy]$ ]] || { note "Skipping completion install."; return 0; }
+            case "$yn" in
+                y|Y|yes|YES|Yes) ;;
+                *) note "Skipping completion install."; return 0 ;;
+            esac
             ;;
     esac
 

@@ -25,8 +25,9 @@ Bash and zsh scripts live in `completions/` and use the hidden
 
 ## ✅ Syntax highlight when printing the MD files
 
-`til show` renders Markdown when stdout is a TTY via `bat`/`glow`/`rich`
-with a plain fallback. Respects `NO_COLOR` and the `--plain` flag.
+`til show` renders Markdown when stdout is a TTY via `glow` (preferred)
+or `bat`, with a plain fallback. Respects `NO_COLOR`, the `--plain`
+flag, and the `TIL_RENDERER` env var.
 
 ## ✅ Improve install UX
 

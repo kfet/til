@@ -330,6 +330,24 @@ This file is missing frontmatter and a level-1 heading.
         errors = validate_entry(TILEntry(unclosed_dir / "SKILL.md"))
         self.assertTrue(any("unclosed" in e.lower() for e in errors),
                         f"expected unclosed-fence error, got {errors!r}")
+
+        # Body must START with a level-1 heading: paragraph text before
+        # the first ``# `` is a spec violation, not just unusual.
+        prose_first_dir = self.test_dir / "skills" / "prose-first"
+        prose_first_dir.mkdir(parents=True)
+        (prose_first_dir / "SKILL.md").write_text(
+            "---\n"
+            "name: prose-first\n"
+            "description: \"Prose. Use when.\"\n"
+            "---\n\n"
+            "Stray paragraph before the heading.\n\n"
+            "# Title\n"
+        )
+        errors = validate_entry(TILEntry(prose_first_dir / "SKILL.md"))
+        self.assertTrue(any("start" in e.lower() and "level-1" in e.lower()
+                            for e in errors),
+                        f"expected body-must-start-with-H1 error, got "
+                        f"{errors!r}")
     
     @patch('subprocess.call')
     @patch('builtins.input', return_value='y')

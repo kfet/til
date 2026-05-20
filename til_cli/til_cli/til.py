@@ -332,13 +332,19 @@ def validate_entry(entry: TILEntry) -> List[str]:
                     f"({len(description)} chars; limit is 1024)")
 
         # The body must start with a level-1 heading per the skill spec.
+        # "Start with" = the first non-empty line of the body is ``# ...``;
+        # leading blank lines are OK, prose before the heading is not.
         try:
             body_text = entry.path.read_text()
         except OSError as exc:
             errors.append(f"Cannot read file: {exc}")
             body_text = ''
         _, body = TILEntry._split_frontmatter(body_text)
-        if not re.search(r'^# .+', body, re.MULTILINE):
+        first_nonempty = next(
+            (line for line in body.splitlines() if line.strip()),
+            '',
+        )
+        if not re.match(r'^# .+', first_nonempty):
             errors.append("Body must start with a level-1 heading (# ...)")
     else:
         # Legacy single-file entry: keep the older sanity checks.
