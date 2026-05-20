@@ -152,8 +152,10 @@ class TILEntry:
             if term in content.lower():
                 return True
 
-        # Check filename / slug
-        if term in self.path.stem.lower() or term in self.slug.lower():
+        # Check slug. (Skill files all share the stem ``SKILL``, so a
+        # ``path.stem`` check would match every skill for any substring of
+        # ``skill`` — the slug is the only useful identifier.)
+        if term in self.slug.lower():
             return True
 
         return False

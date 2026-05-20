@@ -112,6 +112,28 @@ This file is missing frontmatter and a level-1 heading.
         entry = collection.get_entry(str(self.sample_file))
         self.assertIsNotNone(entry)
 
+    def test_search_does_not_match_skill_word_for_every_skill(self):
+        """Searching for 'skill' must not return every skill via path.stem."""
+        # ``path.stem`` for ``skills/<slug>/SKILL.md`` is always ``SKILL``.
+        # Make sure that's no longer treated as searchable content.
+        extra_dir = self.test_dir / "skills" / "ghostty-foo"
+        extra_dir.mkdir(parents=True)
+        (extra_dir / "SKILL.md").write_text(
+            "---\nname: ghostty-foo\ndescription: \"Ghostty foo. Use when.\"\n"
+            "---\n\n# Ghostty foo\n"
+        )
+
+        collection = TILCollection(self.test_dir)
+        # ``skill`` must not blanket-match every entry: the two setUp
+        # fixtures (``sample``, ``invalid``) and ``ghostty-foo`` are all
+        # SKILL.md files, but none of their slugs/titles/content contain
+        # the word "skill".
+        hits = collection.search("skill")
+        hit_slugs = {e.slug for e in hits}
+        self.assertNotIn("ghostty-foo", hit_slugs)
+        self.assertNotIn("sample", hit_slugs)
+        self.assertNotIn("invalid", hit_slugs)
+
     def test_collection_ignores_non_skill_files(self):
         """Loader must only pick up skills/<slug>/SKILL.md."""
         # Top-level Markdown that isn't a skill.
@@ -299,6 +321,38 @@ This file is missing frontmatter and a level-1 heading.
         # Verify the return value
         self.assertEqual(result, 0)
 
+
+    def test_search_term_underscore_complete_not_hijacked(self):
+        """`til search _complete` must search, not run the hidden helper."""
+        import subprocess
+        til_launcher = Path(__file__).parent / "til"
+        # Use --repo-path so the test repo is targeted.
+        proc = subprocess.run(
+            [str(til_launcher), "--repo-path", str(self.test_dir),
+             "search", "_complete"],
+            capture_output=True, text=True,
+        )
+        # The search should run cleanly and report a real result line —
+        # either matching entries or "No matching entries found" — not
+        # emit the completion helper's slug list.
+        out = proc.stdout
+        self.assertTrue(
+            "matching entries" in out or "No matching entries found" in out,
+            f"`til search _complete` looks hijacked by the completion "
+            f"helper. stdout=\n{out}")
+
+    def test_help_does_not_leak_complete_helper(self):
+        """`til --help` must not expose the hidden `_complete` subcommand."""
+        import subprocess
+        til_launcher = Path(__file__).parent / "til"
+        out = subprocess.check_output(
+            [str(til_launcher), "--help"], text=True,
+            stderr=subprocess.STDOUT,
+        )
+        self.assertNotIn("_complete", out,
+                         f"`_complete` leaked into --help:\n{out}")
+        self.assertNotIn("SUPPRESS", out,
+                         f"`SUPPRESS` sentinel leaked into --help:\n{out}")
 
     def test_completion_helper(self):
         """`til _complete` emits stable lists for shell completion."""

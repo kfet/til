@@ -7,13 +7,14 @@ This repo holds my "Today I Learned" notes, now packaged as
 - Test: `python3 -m unittest test_til.py`
 - Test single test: `python3 -m unittest test_til.TestTILTool.test_til_entry_parsing`
 - Run the TIL CLI (uv launcher): `./til <command>`
-- Re-run the one-shot migration script: `python3 tools/convert_to_skills.py`
 
-Note: `test_til.py` and `til_cli/` still exercise the legacy TIL entry
-format against synthetic fixtures. They have not yet been retargeted to
-validate the new `skills/` tree, so `./til validate` will report
-"Missing Summary section" against every skill — expected, not a real
-failure.
+The CLI now matches the `skills/` layout: `./til list`, `./til search`,
+`./til show`, and `./til validate` all operate on `skills/<slug>/SKILL.md`.
+`./til validate` enforces the Agent Skill spec — frontmatter `name` must
+equal the directory name and match `[a-z0-9-]{1,64}`, `description` must
+exist and be ≤1024 chars, the body must start with a level-1 heading, and
+code blocks must declare a language. Shell completion lives under
+`completions/` (see `completions/README.md`).
 
 ## Code Style Guidelines
 - Python: Follow PEP 8 conventions
@@ -37,4 +38,4 @@ failure.
 - All knowledge entries: `skills/{topic}-{specific_knowledge}/SKILL.md`
 - Top-level non-skill files: `README.md`, `CLAUDE.md`, `TODO.md`,
   `install.sh`, `til` (CLI launcher), `til_cli/` (legacy CLI),
-  `test_til.py`, `tools/` (migration scripts)
+  `test_til.py`, `completions/` (shell completion scripts)

@@ -46,27 +46,28 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
 - `search TERM`: Search for TIL entries matching the given term
 
 - `show ENTRY`: Show the content of a TIL entry
-  - `ENTRY` can be a file path or a name/title
+  - `ENTRY` can be a skill slug (`ghostty-config-term`), a repository
+    path (`skills/ghostty-config-term/SKILL.md`), an absolute path, or
+    the entry title
 
 - `execute ENTRY SECTION`: Execute code blocks from a section marked as executable
-  - `ENTRY`: File path or name/title of the TIL entry
+  - `ENTRY`: skill slug, repository path, absolute path, or title
   - `SECTION`: Section name containing the executable code blocks
 
 - `validate [ENTRY]`: Validate TIL entries for proper formatting
-  - `ENTRY` (optional): File path or name/title (validates all entries if not specified)
+  - `ENTRY` (optional): skill slug or path (validates all entries if not specified)
 
 - `version`: Show version information about the tool
 
 ## Entry Format
 
-TIL entries follow a standardized format:
-
-1. Start with H1 title
-2. Include metadata as key-value pairs
-3. Use standardized sections with H2 headings
-4. Mark executable code blocks with the "(executable)" tag
-
-See `til-format.md` for the full format specification.
+Entries are packaged as [Agent Skills](https://agentskills.io/specification)
+under `skills/{topic}-{name}/SKILL.md`. Each file has YAML frontmatter
+with `name` (must equal the directory name; `[a-z0-9-]{1,64}`) and
+`description` (≤1024 chars), a level-1 heading, and standard Markdown
+content. Mark executable code blocks by appending `(executable)` to the
+containing `## Section` heading and tagging code fences with a language
+(`bash`, `sh`, `python`).
 
 ## Examples
 
@@ -82,12 +83,12 @@ Search for entries related to git:
 
 Show a specific entry:
 ```
-./til show git/git_configure.md
+./til show git-git-configure
 ```
 
 Execute the Install section of an entry:
 ```
-./til execute shell/jq_basics.md Install
+./til execute python-til-tests Summary
 ```
 
 Validate all entries:

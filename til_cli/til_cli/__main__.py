@@ -42,8 +42,91 @@ def auto_update_repository(repo_path, command):
     check_for_repo_updates(repo_path, force=force_update)
 
 
+# Public, user-facing subcommands. Single source of truth used by both the
+# argument parser and the completion helper.
+_PUBLIC_COMMANDS = (
+    'list', 'search', 'show', 'execute', 'validate',
+    'version', 'config', 'update',
+)
+
+
+def _looks_like_complete_invocation(argv: list) -> bool:
+    """True iff ``argv`` starts with (optional ``--repo-path PATH``) then
+    ``_complete``. Used to intercept the helper without hijacking
+    legitimate commands like ``til search _complete``.
+    """
+    i = 0
+    if i < len(argv) and argv[i] == '--repo-path':
+        i += 2
+    elif i < len(argv) and argv[i].startswith('--repo-path='):
+        i += 1
+    return i < len(argv) and argv[i] == '_complete'
+
+
+def _handle_complete(argv: list) -> int:
+    """Implement the hidden ``_complete`` subcommand.
+
+    Intercepted before argparse setup so the helper does not appear in
+    ``til --help`` (``argparse.SUPPRESS`` does not fully hide subparsers
+    on current Python versions). Tolerates a leading ``--repo-path PATH``
+    pair so completion honours the user's repo selection.
+    """
+    # Minimal arg parsing: optional --repo-path, then ``_complete``, then
+    # ``what`` (commands|slugs|sections), then optional entry slug.
+    repo_path = None
+    i = 0
+    while i < len(argv) and argv[i] != '_complete':
+        if argv[i] == '--repo-path' and i + 1 < len(argv):
+            repo_path = argv[i + 1]
+            i += 2
+        elif argv[i].startswith('--repo-path='):
+            repo_path = argv[i].split('=', 1)[1]
+            i += 1
+        else:
+            # Unknown leading token; bail silently — completion must not
+            # produce noise on the user's tab line.
+            return 0
+    if i >= len(argv) or argv[i] != '_complete':
+        return 0
+    rest = argv[i + 1:]
+    if not rest:
+        return 0
+    what = rest[0]
+
+    if what == 'commands':
+        for cmd in _PUBLIC_COMMANDS:
+            print(cmd)
+        return 0
+
+    root_dir = Path(repo_path) if repo_path else get_til_repo_path()
+    collection = TILCollection(root_dir)
+
+    if what == 'slugs':
+        for entry in sorted(collection.entries, key=lambda e: e.slug):
+            print(entry.slug)
+        return 0
+    if what == 'sections':
+        if len(rest) < 2:
+            return 0
+        entry = collection.get_entry(rest[1])
+        if not entry:
+            return 0
+        for section in entry.executable_sections:
+            print(section)
+        return 0
+    return 0
+
+
 def main():
     """Main entry point for the TIL CLI tool"""
+    # Intercept the hidden completion helper before any heavier work or
+    # argparse setup. Keeps it out of ``til --help`` and avoids
+    # auto-update side effects on every tab. The helper word must be at
+    # the start (optionally after ``--repo-path PATH``) so legitimate
+    # commands like ``til search _complete`` are not hijacked.
+    if _looks_like_complete_invocation(sys.argv[1:]):
+        return _handle_complete(sys.argv[1:])
+
     try:
         # Set up argument parser
         parser = argparse.ArgumentParser(description="TIL CLI Tool")
@@ -87,16 +170,10 @@ def main():
         subparsers.add_parser(
             'update', help='Update TIL repository with latest changes')
 
-        # Hidden completion helper used by the shell completion scripts in
-        # ``completions/``.  Emits one candidate per line, no decorations.
-        complete_parser = subparsers.add_parser(
-            '_complete', help=argparse.SUPPRESS)
-        complete_parser.add_argument(
-            'what', choices=('commands', 'slugs', 'sections'),
-            help='Kind of completion to emit')
-        complete_parser.add_argument(
-            'entry', nargs='?',
-            help="Slug or path (only used when 'what' is 'sections')")
+        # NOTE: the hidden ``_complete`` helper is intercepted at the top
+        # of ``main()`` before argparse runs, so it is intentionally NOT
+        # registered as a subparser here (argparse's ``SUPPRESS`` leaks
+        # ``==SUPPRESS==`` into ``--help`` for subparsers).
 
         # Add global repo-path argument
         parser.add_argument('--repo-path', help='Path to TIL repository')
@@ -131,6 +208,33 @@ def main():
             elif config_path.exists():
                 repo_path = Path(config_path.read_text().strip())
                 print(f"TIL repository path: {repo_path}")
+                return 0
+
+        # Handle the hidden completion subcommand before any auto-update
+        # work — completion must be cheap and side-effect-free, and must
+        # not trigger ``git fetch``.
+        if args.command == '_complete':
+            collection_cache = None
+            if args.what == 'commands':
+                # Public, user-facing subcommands only (skip the helper).
+                for cmd in ('list', 'search', 'show', 'execute', 'validate',
+                            'version', 'config', 'update'):
+                    print(cmd)
+                return 0
+            collection_cache = TILCollection(root_dir)
+            if args.what == 'slugs':
+                for entry in sorted(collection_cache.entries,
+                                    key=lambda e: e.slug):
+                    print(entry.slug)
+                return 0
+            if args.what == 'sections':
+                if not args.entry:
+                    return 0
+                entry = collection_cache.get_entry(args.entry)
+                if not entry:
+                    return 0
+                for section in entry.executable_sections:
+                    print(section)
                 return 0
 
         # Handle the hidden completion subcommand before any auto-update
