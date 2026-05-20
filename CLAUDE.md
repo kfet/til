@@ -37,5 +37,14 @@ code blocks must declare a language. Shell completion lives under
 ## File Organization
 - All knowledge entries: `skills/{topic}-{specific_knowledge}/SKILL.md`
 - Top-level non-skill files: `README.md`, `CLAUDE.md`, `TODO.md`,
-  `install.sh`, `til` (CLI launcher), `til_cli/` (legacy CLI),
-  `test_til.py`, `completions/` (shell completion scripts)
+  `install.sh`, `til` (CLI launcher), `til_cli/` (CLI source),
+  `test_til.py`, `completions/` (shell completion scripts),
+  `tools/` (one-shot maintenance scripts; e.g.
+  `tools/fix_skill_validations.py` adds language tags to fenced code
+  blocks)
+
+## Rendering
+`til show` pipes Markdown through `glow` or `bat` when stdout is a TTY
+and `NO_COLOR` is unset; pass `--plain` (or set `TIL_RENDERER=plain`)
+to force raw output. Honour these conventions when adding new
+rendering paths.

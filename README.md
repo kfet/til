@@ -17,3 +17,26 @@ Or directly from GitHub
 ```bash
 curl -sSL https://raw.githubusercontent.com/kfet/til/main/install.sh | bash
 ```
+
+The installer prompts to drop bash/zsh completion under the right
+`fpath` / `bash-completion` directory; pass `--completion=yes` or
+`--completion=no` to skip the prompt.
+
+# CLI overview
+
+Once installed:
+
+```bash
+til list                # list every skill
+til search <term>       # full-text search
+til show <slug>         # render a skill (uses glow/bat when stdout is a TTY)
+til show --plain <slug> # raw markdown (also when NO_COLOR is set or piped)
+til execute <slug> <section>   # run code blocks from a `(executable)` section
+til validate            # check every skill against the Agent Skill spec
+til update              # git pull the skills repo
+```
+
+`til show` auto-picks a renderer in this order: whatever `TIL_RENDERER`
+is set to, then `glow`, then `bat`. With none installed it just prints
+plain text.
+

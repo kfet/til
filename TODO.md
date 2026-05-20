@@ -1,27 +1,5 @@
 # Ideas on how to make better use of the TIL collection
 
-## Improve install UX
-
-Verify `til` is on `PATH` after install; print a shell-specific source line
-if not. Optionally install the bash/zsh completion scripts from
-`completions/`.
-
-## Syntax highlight when printing the MD files
-
-Render Markdown when stdout is a TTY (e.g. via `rich`, `bat`, or `glow`)
-with a plain-text fallback. Respect `NO_COLOR` and `--plain`.
-
-## Turn this collection into executable configuration(s)
-
-For example, when setting up a new environment:
-`til apply git` could run all Git-related setup steps. Notes:
-
-- Don't reuse `til config` — that's already the CLI's "set repo path" verb.
-- Topic discovery needs either slug-prefix parsing (`git-*`) or explicit
-  `topic:` / `tags:` frontmatter.
-- Use a single plan-then-confirm step, not per-block prompts. Add
-  `--dry-run` and `--yes`.
-
 ## ✅ Auto-update local installation in the background
 
 ## ✅ Make it installable
@@ -44,3 +22,22 @@ must start with `# H1`, code blocks need a language tag.
 
 Bash and zsh scripts live in `completions/` and use the hidden
 `til _complete` helper.
+
+## ✅ Syntax highlight when printing the MD files
+
+`til show` renders Markdown when stdout is a TTY via `bat`/`glow`/`rich`
+with a plain fallback. Respects `NO_COLOR` and the `--plain` flag.
+
+## ✅ Improve install UX
+
+`install.sh` verifies `til` is on `PATH` after install, prints
+shell-specific guidance if not, and optionally installs the shell
+completion scripts from `completions/`.
+
+## ✅ Turn this collection into executable configurations
+
+Implicitly done by the migration to Agent Skills: every
+`skills/<slug>/SKILL.md` is consumable by a skill-aware AI agent, which
+reads, plans, and runs the steps interactively. A dedicated
+`til apply <topic>` runner is not needed — point any AI agent at the
+repo and ask it to apply the relevant skills.
