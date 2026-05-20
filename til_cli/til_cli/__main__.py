@@ -21,6 +21,7 @@ from til_cli.til import (
     get_til_repo_path,
     check_for_repo_updates
 )
+from til_cli.render import render as render_markdown
 
 # Configure logging
 logging.basicConfig(
@@ -144,6 +145,9 @@ def main():
         # Show command
         show_parser = subparsers.add_parser('show', help='Show a TIL entry')
         show_parser.add_argument('entry', help='Entry path or name')
+        show_parser.add_argument(
+            '--plain', action='store_true',
+            help='Disable Markdown rendering; print raw text')
 
         # Execute command
         exec_parser = subparsers.add_parser(
@@ -210,59 +214,9 @@ def main():
                 print(f"TIL repository path: {repo_path}")
                 return 0
 
-        # Handle the hidden completion subcommand before any auto-update
-        # work — completion must be cheap and side-effect-free, and must
-        # not trigger ``git fetch``.
-        if args.command == '_complete':
-            collection_cache = None
-            if args.what == 'commands':
-                # Public, user-facing subcommands only (skip the helper).
-                for cmd in ('list', 'search', 'show', 'execute', 'validate',
-                            'version', 'config', 'update'):
-                    print(cmd)
-                return 0
-            collection_cache = TILCollection(root_dir)
-            if args.what == 'slugs':
-                for entry in sorted(collection_cache.entries,
-                                    key=lambda e: e.slug):
-                    print(entry.slug)
-                return 0
-            if args.what == 'sections':
-                if not args.entry:
-                    return 0
-                entry = collection_cache.get_entry(args.entry)
-                if not entry:
-                    return 0
-                for section in entry.executable_sections:
-                    print(section)
-                return 0
-
-        # Handle the hidden completion subcommand before any auto-update
-        # work — completion must be cheap and side-effect-free, and must
-        # not trigger ``git fetch``.
-        if args.command == '_complete':
-            collection_cache = None
-            if args.what == 'commands':
-                # Public, user-facing subcommands only (skip the helper).
-                for cmd in ('list', 'search', 'show', 'execute', 'validate',
-                            'version', 'config', 'update'):
-                    print(cmd)
-                return 0
-            collection_cache = TILCollection(root_dir)
-            if args.what == 'slugs':
-                for entry in sorted(collection_cache.entries,
-                                    key=lambda e: e.slug):
-                    print(entry.slug)
-                return 0
-            if args.what == 'sections':
-                if not args.entry:
-                    return 0
-                entry = collection_cache.get_entry(args.entry)
-                if not entry:
-                    return 0
-                for section in entry.executable_sections:
-                    print(section)
-                return 0
+        # NOTE: ``args.command == '_complete'`` is unreachable here because
+        # ``_handle_complete`` runs at the top of ``main()`` and the
+        # subparser is no longer registered. No special-case needed.
 
         # Automatically update repository if needed
         auto_update_repository(root_dir, args.command)
@@ -289,8 +243,7 @@ def main():
         elif args.command == 'show':
             entry = collection.get_entry(args.entry)
             if entry:
-                # Display full content of the entry
-                print(entry.path.read_text())
+                render_markdown(entry.path.read_text(), plain=args.plain)
             else:
                 logger.error(f"Entry not found: {args.entry}")
                 return 1
