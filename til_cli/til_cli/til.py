@@ -239,11 +239,15 @@ class TILCollection:
             if entry.title.lower() == name_lower:
                 return entry
 
-        # 4) Partial match on slug, title, or filename.
+        # 4) Partial match on slug or title. (``path.stem`` is intentionally
+        #    excluded: skill files all share the stem ``SKILL``, so a stem
+        #    check would resolve any substring of ``skill`` — including ``s``,
+        #    ``kil``, ``ll`` — to the first skill alphabetically. ``slug``
+        #    is the right identifier; for legacy single-file entries the
+        #    slug equals the stem anyway, so no coverage is lost.)
         for entry in self.entries:
             if (name_lower in entry.slug.lower()
-                    or name_lower in entry.title.lower()
-                    or name_lower in entry.path.stem.lower()):
+                    or name_lower in entry.title.lower()):
                 return entry
 
         return None
@@ -303,6 +307,14 @@ def validate_entry(entry: TILEntry) -> List[str]:
     errors: List[str] = []
     is_skill = entry.path.name == 'SKILL.md'
 
+    # Read the file once; subsequent checks reuse ``raw``/``body``.
+    try:
+        raw = entry.path.read_text()
+    except OSError as exc:
+        errors.append(f"Cannot read file: {exc}")
+        raw = ''
+    _, body = TILEntry._split_frontmatter(raw)
+
     if is_skill:
         # Frontmatter must exist for skill entries.
         if not entry.frontmatter:
@@ -334,12 +346,6 @@ def validate_entry(entry: TILEntry) -> List[str]:
         # The body must start with a level-1 heading per the skill spec.
         # "Start with" = the first non-empty line of the body is ``# ...``;
         # leading blank lines are OK, prose before the heading is not.
-        try:
-            body_text = entry.path.read_text()
-        except OSError as exc:
-            errors.append(f"Cannot read file: {exc}")
-            body_text = ''
-        _, body = TILEntry._split_frontmatter(body_text)
         first_nonempty = next(
             (line for line in body.splitlines() if line.strip()),
             '',
@@ -356,14 +362,9 @@ def validate_entry(entry: TILEntry) -> List[str]:
     # Common: code blocks must have a language specifier. Walk fences
     # line-by-line so a stray backtick inside a code block can't mask
     # the opening fence.
-    try:
-        raw = entry.path.read_text()
-    except OSError:
-        raw = ''
-    _, body_for_blocks = TILEntry._split_frontmatter(raw)
     in_block = False
     open_lang: Optional[str] = None
-    for line in body_for_blocks.splitlines():
+    for line in body.splitlines():
         m = re.match(r'^```([A-Za-z0-9_-]*)\s*$', line)
         if not m:
             continue

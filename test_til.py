@@ -112,6 +112,40 @@ This file is missing frontmatter and a level-1 heading.
         entry = collection.get_entry(str(self.sample_file))
         self.assertIsNotNone(entry)
 
+    def test_get_entry_does_not_match_skill_stem(self):
+        """`til show <substring-of-SKILL>` must not return a random skill.
+
+        ``skills/<slug>/SKILL.md`` files all share the stem ``SKILL``, so
+        any partial-match clause that consulted ``path.stem`` would resolve
+        single-character / short queries (``s``, ``sk``, ``kil``, ``ll``)
+        to the first skill alphabetically. ``matches_search`` already
+        avoids that; ``get_entry``'s partial-match fallback must too.
+        """
+        extra_dir = self.test_dir / "skills" / "zzz-other"
+        extra_dir.mkdir(parents=True)
+        (extra_dir / "SKILL.md").write_text(
+            "---\nname: zzz-other\ndescription: \"Zzz. Use when.\"\n"
+            "---\n\n# Zzz Other\n"
+        )
+
+        collection = TILCollection(self.test_dir)
+        # Queries that are substrings of "skill" but appear in no slug,
+        # title, or body content must return None, not a stem match.
+        for query in ("kil", "ll", "sk", "skil"):
+            found = collection.get_entry(query)
+            self.assertIsNone(
+                found,
+                f"get_entry({query!r}) returned {found!r}; expected None "
+                f"(query is a substring of SKILL.md stem only)")
+
+        # Substring partial-match on slug must still work, so users keep
+        # the "fuzzy slug" affordance even with the stem clause removed.
+        # The setUp fixture lives at skills/sample/SKILL.md (slug=sample);
+        # "ample" is a substring of the slug.
+        found = collection.get_entry("ample")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.slug, "sample")
+
     def test_search_does_not_match_skill_word_for_every_skill(self):
         """Searching for 'skill' must not return every skill via path.stem."""
         # ``path.stem`` for ``skills/<slug>/SKILL.md`` is always ``SKILL``.
