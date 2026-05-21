@@ -5,6 +5,7 @@ Tests for the TIL CLI Tool
 import os
 import tempfile
 from pathlib import Path
+from typing import List
 import unittest
 from unittest.mock import patch, MagicMock
 import sys
