@@ -6,6 +6,7 @@ Falls back to plain text in every "this would be unsafe to colorise"
 condition (non-TTY, ``NO_COLOR``, ``--plain``, ``TIL_RENDERER=plain``,
 missing renderer).
 """
+
 from __future__ import annotations
 
 import os
@@ -14,11 +15,10 @@ import subprocess
 import sys
 from typing import List, Optional, Sequence
 
-
 # Order in which we try to auto-pick a renderer when ``TIL_RENDERER`` is
 # unset or ``auto``. ``glow`` first because it formats Markdown; ``bat``
 # is a syntax highlighter for the raw source, which is still pleasant.
-_AUTO_ORDER: Sequence[str] = ("glow", "bat")
+_AUTO_ORDER: Sequence[str] = ("bat", "glow")
 
 
 def _renderer_argv(name: str) -> Optional[List[str]]:
@@ -29,12 +29,12 @@ def _renderer_argv(name: str) -> Optional[List[str]]:
     if name == "glow":
         # ``-s auto`` picks light/dark from terminal background; ``-p``
         # would page — we leave paging to the user's shell pipeline.
-        return [bin_path, "-s", "auto", "-"]
+        return [bin_path, "-s", "dracula", "-"]
     if name == "bat":
         return [
             bin_path,
             "--language=md",
-            "--style=plain",
+            "--style=grid",
             "--paging=never",
             "--color=always",
         ]
