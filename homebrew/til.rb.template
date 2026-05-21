@@ -1,0 +1,49 @@
+# This formula is rendered from homebrew/til.rb.template in kfet/til.
+# Do not edit the generated Formula/til.rb in kfet/homebrew-til by hand;
+# the release workflow regenerates it on every kfet/til tag push.
+#
+# Users install with:
+#   brew install kfet/til/til
+#   (or: brew tap kfet/til && brew install til)
+
+class Til < Formula
+  include Language::Python::Virtualenv
+
+  desc "CLI for kfet's Today I Learned notes packaged as Agent Skills"
+  homepage "https://github.com/kfet/til"
+  url "https://github.com/kfet/til.git", tag: "v__VERSION__"
+  version "__VERSION__"
+  license "MIT"
+  head "https://github.com/kfet/til.git", branch: "main"
+
+  depends_on "python@3.12"
+
+  def install
+    # Build the Python venv FIRST. til_cli/setup.py reads ../README.md
+    # for long_description at install time, so the file must still be at
+    # the staging root when pip runs. The pkgshare.install calls below
+    # would otherwise move it away and break `pip install`.
+    venv = virtualenv_create(libexec, "python3.12")
+    cd "til_cli" do
+      venv.pip_install "."
+    end
+
+    pkgshare.install "skills"
+    pkgshare.install "README.md", "README_TIL_TOOL.md", "til-format.md"
+
+    (bin/"til").write <<~SH
+      #!/bin/sh
+      export TIL_REPO_PATH="${TIL_REPO_PATH:-#{pkgshare}}"
+      exec "#{libexec}/bin/til" "$@"
+    SH
+    chmod 0755, bin/"til"
+
+    bash_completion.install "completions/til.bash" => "til"
+    zsh_completion.install "completions/_til"
+  end
+
+  test do
+    assert_match "TIL CLI Tool", shell_output("#{bin}/til version")
+    assert_match "(", shell_output("#{bin}/til list")
+  end
+end

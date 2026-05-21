@@ -14,7 +14,16 @@ A command-line tool for managing Today I Learned entries.
 
 ## Installation
 
-### Option 1: Quick Installation (Recommended)
+### Option 1: Homebrew (Recommended on macOS/Linux)
+
+```bash
+brew install kfet/til/til
+```
+
+The Homebrew formula installs a bundled snapshot of the TIL skills. Update it
+with `brew update && brew upgrade til`.
+
+### Option 2: Quick Installation
 
 ```bash
 # Clone the repository
@@ -31,11 +40,11 @@ The installer script will:
 3. Install the TIL CLI tool globally
 4. Configure the repository location
 
-### Option 2: Manual Installation
+### Option 3: Manual Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/til.git
+git clone https://github.com/kfet/til.git
 cd til
 
 # Install with pipx (recommended for CLI tools)
@@ -45,11 +54,11 @@ pipx install ./til_cli
 til config /path/to/til/repo
 ```
 
-### Option 3: Development Installation
+### Option 4: Development Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/til.git
+git clone https://github.com/kfet/til.git
 cd til
 
 # Install in development mode
@@ -107,4 +116,4 @@ til config /path/to/til/repo
 
 ## License
 
-This project is licensed under the BSD 3-Clause License - see the LICENSE.md file for details.
+This project is licensed under the MIT License - see the LICENSE.md file for details.

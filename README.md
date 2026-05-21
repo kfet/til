@@ -6,14 +6,32 @@ TIL entries are little nuggets of knowledge, which at some point in time I consi
 
 Entries are packaged as [Agent Skills](https://agentskills.io/specification) under `skills/{topic}-{name}/SKILL.md`. Each skill is a plain Markdown file with a small YAML frontmatter (`name`, `description`) so it can be consumed by skill-aware agents as well as read directly.
 
-# Local installation
+## Install
 
-From a local clone
+### Homebrew (macOS, Linux)
+
+```bash
+brew install kfet/til/til
+```
+
+The Homebrew formula installs a bundled snapshot of the `skills/` tree and sets
+`til` to read from that snapshot by default. Update it with:
+
+```bash
+brew update
+brew upgrade til
+```
+
+### Install script
+
+From a local clone:
+
 ```bash
 ./install.sh
 ```
 
-Or directly from GitHub
+Or directly from GitHub:
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/kfet/til/main/install.sh | bash
 ```
@@ -22,7 +40,7 @@ The installer prompts to drop bash/zsh completion under the right
 `fpath` / `bash-completion` directory; pass `--completion=yes` or
 `--completion=no` to skip the prompt.
 
-# CLI overview
+## CLI overview
 
 Once installed:
 
@@ -40,3 +58,12 @@ til update              # git pull the skills repo
 is set to, then `glow`, then `bat`. With none installed it just prints
 plain text.
 
+## Release
+
+Push a `vX.Y.Z` tag to create a GitHub release and render `Formula/til.rb` into
+the `kfet/homebrew-til` tap. The release workflow needs a `HOMEBREW_TAP_TOKEN`
+secret with write access to that tap.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
