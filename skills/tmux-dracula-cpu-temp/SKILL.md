@@ -1,6 +1,6 @@
 ---
 name: tmux-dracula-cpu-temp
-description: "Show CPU temperature in the tmux status bar via the Dracula theme, with dynamic color based on the value (cold/normal/warm/hot), in an update-safe way. macOS (Apple Silicon) version using macmon. Use when working with tmux, dracula/tmux, or the user mentions adding a CPU temp segment to the tmux status line on a Mac."
+description: "Show CPU temperature in the tmux status bar via the Dracula theme, with dynamic color based on the value (cold/normal/warm/hot), in an update-safe way. macOS (Apple Silicon) version using smctemp. Use when working with tmux, dracula/tmux, or the user mentions adding a CPU temp segment to the tmux status line on a Mac."
 ---
 
 # Show Mac CPU temp in the tmux status bar (Dracula, colored, update-safe)
@@ -18,17 +18,28 @@ and a trailing `set -ag status-right "..."` sticks.
 The script emits its **own** `#[fg=...,bg=...]` directive so the
 background color changes with the temperature.
 
-## 1. Install a sudoless temp source
+## 1. Install smctemp
 
-On Apple Silicon, `osx-cpu-temp` and `istats` don't work. Use
-[`macmon`](https://github.com/vladkens/macmon) — sudoless,
-brew-installable:
+On Apple Silicon, `osx-cpu-temp` and `istats` don't work.
+Use [`smctemp`](https://github.com/narugit/smctemp) — a lightweight
+CLI that reads CPU temperature directly from the SMC:
 
 ```bash
-brew install macmon
+brew tap narugit/tap
+brew install narugit/tap/smctemp
 ```
 
-The CPU temp is in `temp.cpu_temp_avg` from `macmon pipe -s 1 -i 200`.
+`smctemp -c` prints just the CPU temp as a number (e.g. `52.3`).
+
+### Why smctemp instead of macmon?
+
+We originally used [`macmon`](https://github.com/vladkens/macmon), but
+it polls Apple's IOReport framework at a 200ms interval
+(`macmon pipe -s 1 -i 200`), which causes **~35% CPU usage** — far too
+heavy for a status-bar widget that refreshes every 5 seconds.
+
+`smctemp -c` does a single direct SMC register read and exits
+immediately, with negligible CPU overhead.
 
 ## 2. Wrapper script
 
@@ -37,17 +48,16 @@ The CPU temp is in `temp.cpu_temp_avg` from `macmon pipe -s 1 -i 200`.
 ```bash
 #!/usr/bin/env bash
 # Print colored CPU temp segment for tmux status bar (macOS, Apple Silicon).
+# Uses smctemp (lightweight SMC reader) instead of macmon.
 set -eu
 
 NA='#[fg=#282a36,bg=#6272a4] |🌡 n/a '
 
-if ! command -v macmon >/dev/null 2>&1; then
+if ! command -v smctemp >/dev/null 2>&1; then
   printf '%s' "$NA"; exit 0
 fi
 
-raw=$(macmon pipe -s 1 -i 200 2>/dev/null \
-  | sed -n 's/.*"cpu_temp_avg":\([0-9.]*\).*/\1/p' \
-  | head -1)
+raw=$(smctemp -c 2>/dev/null)
 
 if [ -z "${raw:-}" ]; then
   printf '%s' "$NA"; exit 0
