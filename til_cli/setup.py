@@ -14,13 +14,13 @@ setup(
             "til=til_cli.__main__:main",
         ],
     },
-    python_requires=">=3.12",
+    python_requires=">=3.9",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.9",
     ],
 )

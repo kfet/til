@@ -77,7 +77,7 @@ The TIL tool has the following dependency on its location:
                "til=til.__main__:main",
            ],
        },
-       python_requires=">=3.12",
+       python_requires=">=3.9",
    )
    ```
 
