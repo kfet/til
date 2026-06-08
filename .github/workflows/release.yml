@@ -25,6 +25,29 @@ jobs:
       - name: Install uv
         run: python -m pip install uv
 
+      - name: Guard release version (monotonic + matches VERSION)
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          git fetch --tags --force --quiet || true
+          TAG="${GITHUB_REF_NAME}"
+          if [ -f VERSION ]; then
+            VER="$(tr -d '[:space:]' < VERSION)"
+            if [ "v$VER" != "$TAG" ]; then
+              echo "::error::VERSION file ($VER) does not match pushed tag ($TAG)"
+              exit 1
+            fi
+          fi
+          PREV="$(git tag --list 'v*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)"
+          if [ -n "$PREV" ]; then
+            TOP="$(printf '%s\n%s\n' "${TAG#v}" "${PREV#v}" | sort -V | tail -1)"
+            if [ "$TOP" != "${TAG#v}" ]; then
+              echo "::error::refusing backwards release: $TAG is not greater than existing latest $PREV"
+              exit 1
+            fi
+          fi
+          echo "release guard OK: $TAG > ${PREV:-<none>}"
+
       - name: Run tests
         run: python -m unittest test_til.py
 
