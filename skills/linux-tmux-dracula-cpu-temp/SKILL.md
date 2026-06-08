@@ -58,19 +58,19 @@ busybox / dash too):
 
 f=/sys/class/thermal/thermal_zone0/temp
 if [ ! -r "$f" ]; then
-  printf '#[fg=#282a36,bg=#6272a4] |🌡n/a'
+  printf '#[fg=#282a36,bg=#6272a4] |n/a'
   exit 0
 fi
 
 t=$(awk '{printf "%.0f", $1/1000}' "$f")
 
-if   [ "$t" -lt 50 ]; then bg='#8be9fd'   # cyan   — cold
-elif [ "$t" -lt 65 ]; then bg='#50fa7b'   # green  — normal
-elif [ "$t" -lt 75 ]; then bg='#ffb86c'   # orange — warm
-else                       bg='#ff5555'   # red    — hot
+if   [ "$t" -lt 50 ]; then bg='#8be9fd'; ico='🥶'   # cyan   cold
+elif [ "$t" -lt 65 ]; then bg='#50fa7b'; ico='😎'   # green  normal
+elif [ "$t" -lt 75 ]; then bg='#ffb86c'; ico='🥵'   # orange warm
+else                       bg='#ff5555'; ico='🔥'   # red    hot
 fi
 
-printf '#[fg=#282a36,bg=%s] |🌡%s°C' "$bg" "$t"
+printf '#[fg=#282a36,bg=%s] |%s%s°C' "$bg" "$ico" "$t"
 ```
 
 ```bash
@@ -126,33 +126,62 @@ tmux show -gv status-right | grep -oE 'cpu_info|ram_info|cpu_temp' | sort | uniq
 
 ## Gotcha: emoji width on narrow terminals (phone SSH)
 
-The `🌡` (and the dracula `💻` left-icon) are **emoji** whose rendered
-width disagrees between tmux and many terminals:
+This one bites hard. On a ~40-column phone SSH session the status line
+starts wrapping its last 1-2 characters onto a second row, and **every
+5-second redraw adds another wrapped row** until the screen is a stack
+of half-drawn status bars.
 
-- **tmux** measures the segment with its own `wcwidth` and counts each
-  emoji as **1 cell**.
-- Lots of terminals -- notably mobile SSH clients (Termius, Blink) --
-  render emoji as **2 cells**.
+Root cause: **tmux and your terminal disagree on how wide an emoji is.**
+tmux measures the status with its own Unicode width table; some emoji it
+counts as **1 cell** while your terminal renders them as **2**. tmux
+thinks the line fits, doesn't truncate, and the terminal then paints it
+1 cell too wide -- and because the status row sits at the bottom with
+autowrap on, it wraps and scroll-accumulates on every refresh.
 
-On a wide screen nobody notices. On a narrow one (a ~40-column phone
-SSH session) it bites: tmux computes the status as *fitting* in 40
-columns and draws the whole line without truncating, but the terminal
-paints it 1-2 cells wider than tmux thought. The overflow spills past
-the last column and, because the status row has autowrap, **every
-5-second status redraw scrolls the screen by a line**.
+It is **not** all emoji -- only the ones with Unicode
+`Emoji_Presentation=No` (legacy "text-presentation" pictographs):
+`🌡 ☀ ❄ ♨ ✈ ☁ ❤ ✏`. tmux follows the spec and
+counts these **1 cell**; terminals render them as 2. Emoji with
+`Emoji_Presentation=Yes` (`🔥 🥵 🥶 😎 💻 🧊 …`) are
+counted **2 by tmux**, matching the terminal -- those are safe.
 
-The cheap, robust fix is to make the segment narrow enough that even at
-2-cells-per-emoji it stays under the screen width: **drop the spare
-spaces** around the value. This skill's script uses the tight form
-` |🌡%s°C` (no space after the emoji, no trailing space)
-instead of the looser ` |🌡 %s°C ` which is 2 cells wider.
-Each space removed shaves one cell off *both* the tmux-perceived and
-the terminal-rendered width, so trimming two spaces buys a safe margin.
+The thermometer `🌡` (U+1F321) is one of the bad ones, which is why an
+earlier version of this skill overflowed. **The fix: use an
+`Emoji_Presentation=Yes` glyph instead.** The script above picks a
+width-2 face per temperature band (🥶/😎/🥵/🔥), so tmux and the
+terminal always agree and the status never overflows.
 
-Verify on the actual narrow terminal: with the status drawn, the bottom
-row should sit fully within the screen, no glyph clipped at the right
-edge and no per-redraw scroll. Don't trust tmux's own width math here --
-it's the *terminal's* emoji rendering that decides whether it fits.
+### Things that do NOT work
+
+- **Variation Selector-16 (U+FE0F)**: appending `️` to force emoji
+  presentation does *not* change tmux's width count (verified on tmux
+  3.6b -- `🌡️` still measures width 1).
+- **Trimming spaces**: shaving a space compensates for *one* bad emoji
+  but is fragile -- add another text-presentation emoji and it breaks
+  again. Fix the glyph, not the spacing.
+
+### Probe any glyph's tmux width
+
+Stash the string in a user option and pad it with `#{p<N>:...}`, which
+uses tmux's own width math (a bare literal after `p:` is treated as a
+variable name, so the option indirection is required):
+
+```bash
+tmux set -g @m '🌡'
+tmux display -p '[#{p8:#{@m}}]'   # width = 8 - (trailing spaces)
+tmux set -gu @m
+```
+
+Width 1 = will overflow on a 2-cell-rendering terminal; width 2 = safe.
+
+### The general cure (terminal side)
+
+The disagreement is really the *terminal* violating Unicode's
+default-presentation rule. Many terminals (Blink, Termius, WezTerm,
+kitty) expose a Unicode-width / "ambiguous = narrow" setting. Making the
+terminal spec-compliant renders text-presentation emoji as 1 cell too --
+then tmux and terminal agree for **every** emoji and you can use any
+glyph, thermometer included.
 
 ## Related
 
