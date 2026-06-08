@@ -51,7 +51,7 @@ immediately, with negligible CPU overhead.
 # Uses smctemp (lightweight SMC reader) instead of macmon.
 set -eu
 
-NA='#[fg=#282a36,bg=#6272a4] |🌡 n/a '
+NA='#[fg=#282a36,bg=#6272a4] |🌡n/a'
 
 if ! command -v smctemp >/dev/null 2>&1; then
   printf '%s' "$NA"; exit 0
@@ -72,7 +72,7 @@ elif [ "$t" -lt 95 ]; then bg='#ffb86c'   # orange — warm
 else                       bg='#ff5555'   # red    — hot
 fi
 
-printf '#[fg=#282a36,bg=%s] |🌡 %s°C ' "$bg" "$t"
+printf '#[fg=#282a36,bg=%s] |🌡%s°C' "$bg" "$t"
 ```
 
 ```bash
@@ -116,6 +116,36 @@ tmux re-evaluates the stdout of `#(command)` as a format string by
 default, so `#[fg=...,bg=...]` directives emitted by the script are
 honoured. That's what lets the script set its own background color
 dynamically.
+
+## Gotcha: emoji width on narrow terminals (phone SSH)
+
+The `🌡` (and the dracula `💻` left-icon) are **emoji** whose rendered
+width disagrees between tmux and many terminals:
+
+- **tmux** measures the segment with its own `wcwidth` and counts each
+  emoji as **1 cell**.
+- Lots of terminals -- notably mobile SSH clients (Termius, Blink) --
+  render emoji as **2 cells**.
+
+On a wide screen nobody notices. On a narrow one (a ~40-column phone
+SSH session) it bites: tmux computes the status as *fitting* in 40
+columns and draws the whole line without truncating, but the terminal
+paints it 1-2 cells wider than tmux thought. The overflow spills past
+the last column and, because the status row has autowrap, **every
+5-second status redraw scrolls the screen by a line**.
+
+The cheap, robust fix is to make the segment narrow enough that even at
+2-cells-per-emoji it stays under the screen width: **drop the spare
+spaces** around the value. This skill's script uses the tight form
+` |🌡%s°C` (no space after the emoji, no trailing space)
+instead of the looser ` |🌡 %s°C ` which is 2 cells wider.
+Each space removed shaves one cell off *both* the tmux-perceived and
+the terminal-rendered width, so trimming two spaces buys a safe margin.
+
+Verify on the actual narrow terminal: with the status drawn, the bottom
+row should sit fully within the screen, no glyph clipped at the right
+edge and no per-redraw scroll. Don't trust tmux's own width math here --
+it's the *terminal's* emoji rendering that decides whether it fits.
 
 ## Related
 
