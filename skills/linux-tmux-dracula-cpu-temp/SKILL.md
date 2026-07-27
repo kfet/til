@@ -1,6 +1,6 @@
 ---
 name: linux-tmux-dracula-cpu-temp
-description: "Show CPU temperature in the tmux status bar via the Dracula theme, with dynamic color based on the value, on Linux (desktops, servers, SBCs). Update-safe — uses /sys/class/thermal/ sysfs and does not patch the dracula plugin. Use when working with tmux on any Linux box and the user mentions adding a CPU temp segment to the tmux status line."
+description: "Show CPU temperature in the tmux status bar via the Dracula theme, with dynamic color based on the value, on Linux (desktops, servers, SBCs, Intel Macs). Update-safe — reads /sys/class/thermal/ with a /sys/class/hwmon/ fallback (coretemp/k10temp) and does not patch the dracula plugin. Use when working with tmux on any Linux box and the user mentions adding a CPU temp segment to the tmux status line."
 ---
 
 # Show Linux CPU temp in the tmux status bar (Dracula, colored, update-safe)
@@ -8,16 +8,41 @@ description: "Show CPU temperature in the tmux status bar via the Dracula theme,
 Companion to the macOS version (`tmux-dracula-cpu-temp`). The
 mechanism is the same — append a `status-right` segment after the
 tpm `run` line so dracula stays untouched — but the temp source is
-the kernel sysfs thermal zone, which exists on most Linux systems
-(desktops, servers, and SBCs alike). KVM guests usually don't
-expose it.
+kernel sysfs: the ACPI thermal zone where it exists, otherwise a
+hwmon driver. KVM guests usually expose neither.
 
 Tested on:
 - Raspberry Pi Zero W (armv6, BCM2835)
 - Raspberry Pi Zero 2 W (aarch64, BCM2710A1)
 - Orange Pi Zero 2 W (aarch64, Allwinner H618)
+- Mac mini Mid-2010 (x86_64, Core 2 Duo) running Ubuntu 24.04 —
+  **no `/sys/class/thermal/` at all**, hwmon fallback required
 
-## 1. Find the right thermal zone
+## 1. Find the temperature source
+
+Two independent sysfs interfaces can expose CPU temperature, and
+**you cannot assume the first one exists**:
+
+- `/sys/class/thermal/thermal_zone*` — the ACPI/devicetree thermal
+  framework. Present on SBCs and most ACPI x86 systems.
+- `/sys/class/hwmon/hwmon*` — per-driver hardware monitoring
+  (`coretemp` on Intel, `k10temp` on AMD, `cpu_thermal` on some SoCs).
+
+### Apple hardware has no thermal zones
+
+Intel Macs running Linux expose temperature **only** through hwmon
+(`coretemp` for the CPU, `applesmc` for the SMC's board/fan sensors) —
+`/sys/class/thermal/` is entirely absent. A thermal-zone-only script
+silently prints `n/a` forever on these boxes. Load the modules and
+make them persist:
+
+```bash
+sudo modprobe coretemp
+sudo modprobe applesmc          # Apple hardware only: fans + board sensors
+printf 'coretemp\napplesmc\n' | sudo tee /etc/modules-load.d/sensors.conf
+```
+
+### Find the right thermal zone
 
 The mapping of `thermal_zone0`, `thermal_zone1`, etc. is **not stable
 or standardized** across systems. On one machine `thermal_zone0` might
@@ -40,24 +65,63 @@ Look for a type like `x86_pkg_temp`, `cpu-thermal`, `acpitz`, or
 similar — that's the one to use. The script below defaults to
 `thermal_zone0`; adjust the path if your CPU is on a different zone.
 
-If no thermal zone exists at all, the box doesn't expose CPU
-temperature (typical for cloud KVM guests like Oracle Cloud,
-RackNerd, etc.). On RPi you can also use `vcgencmd measure_temp`,
-but the sysfs path is universal.
+### Find the right hwmon device
+
+If there are no thermal zones (or none of them is the CPU), enumerate
+hwmon instead — each has a `name` identifying its driver:
+
+```bash
+for h in /sys/class/hwmon/hwmon*; do
+    echo "$h: $(cat $h/name 2>/dev/null)"
+    ls $h | grep -E 'temp[0-9]+_input'
+done
+```
+
+`coretemp` (Intel), `k10temp` (AMD), `cpu_thermal` and `zenpower` are
+CPU sensors; `nouveau`/`amdgpu` are the GPU and `applesmc` is board/fan
+telemetry — don't use those for a CPU segment. Note `coretemp` often
+starts at `temp2_input` (temp1 is the package on some CPUs, per-core on
+others); any of them is close enough for a status bar.
+
+Values from both interfaces are in millidegrees Celsius (e.g. `45000`
+= 45.0°C), so the same arithmetic works for either.
+
+If neither interface exists the box doesn't expose CPU temperature
+(typical for cloud KVM guests like Oracle Cloud, RackNerd, etc.). On
+RPi you can also use `vcgencmd measure_temp`, but sysfs is universal.
 
 ## 2. Wrapper script
 
 `~/.tmux/scripts/cpu_temp.sh` (POSIX `sh`, no bashisms — works on
-busybox / dash too):
+busybox / dash too). It tries the thermal zone first and falls back to
+a CPU hwmon device, so the same script works on SBCs, ACPI x86 boxes
+and Intel Macs alike:
 
 ```bash
 #!/bin/sh
 # Print colored CPU temp segment for tmux status bar (Linux sysfs).
+# Source order: ACPI thermal_zone0 -> hwmon (coretemp/k10temp/cpu_thermal).
 # Dracula palette: dark_gray=#282a36, cyan=#8be9fd, green=#50fa7b,
 #                  orange=#ffb86c, red=#ff5555, comment=#6272a4.
 
-f=/sys/class/thermal/thermal_zone0/temp
-if [ ! -r "$f" ]; then
+f=""
+[ -r /sys/class/thermal/thermal_zone0/temp ] && f=/sys/class/thermal/thermal_zone0/temp
+
+if [ -z "$f" ]; then
+  for h in /sys/class/hwmon/hwmon*; do
+    [ -r "$h/name" ] || continue
+    case "$(cat "$h/name")" in
+      coretemp|k10temp|cpu_thermal|zenpower)
+        for c in "$h"/temp*_input; do
+          [ -r "$c" ] && f="$c" && break
+        done
+        ;;
+    esac
+    [ -n "$f" ] && break
+  done
+fi
+
+if [ -z "$f" ]; then
   printf '#[fg=#282a36,bg=#6272a4] |n/a'
   exit 0
 fi
