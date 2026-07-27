@@ -85,7 +85,7 @@ _til() {
             COMPREPLY=( $(compgen -d -- "$cur") )
             ;;
         update)
-            COMPREPLY=( $(compgen -W "--cli" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--no-cli --cli" -- "$cur") )
             ;;
         *)
             COMPREPLY=()

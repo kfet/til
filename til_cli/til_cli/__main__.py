@@ -186,6 +186,24 @@ def repo_cli_version(repo_path) -> Optional[str]:
     return match.group(1) if match else None
 
 
+def git_head(repo_path) -> Optional[str]:
+    """Current HEAD sha of ``repo_path``, or None if it cannot be read.
+
+    Used to tell a real pull from a no-op one. None is treated as
+    "assume it moved" by callers — failing towards doing the work is the
+    safe direction here.
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', 'HEAD'],
+            cwd=str(repo_path), capture_output=True, text=True)
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
 def cli_refresh_command(repo_path):
     """Return ``(argv, human_hint)`` for refreshing the CLI in place."""
     method = detect_install_method()
@@ -254,10 +272,14 @@ def main():
 
         # Update command
         update_parser = subparsers.add_parser(
-            'update', help='Update TIL repository with latest changes')
+            'update',
+            help='Update the TIL repository and the til CLI itself')
+        update_parser.add_argument(
+            '--no-cli', dest='no_cli', action='store_true',
+            help='Only pull skills; leave the installed CLI alone')
         update_parser.add_argument(
             '--cli', action='store_true',
-            help='Also reinstall the til CLI itself from the repository')
+            help='Reinstall the CLI even if it already looks current')
 
         # NOTE: the hidden ``_complete`` helper is intercepted at the top
         # of ``main()`` before argparse runs, so it is intentionally NOT
@@ -429,6 +451,8 @@ def main():
                     logger.error(f"Error: Not a git repository: {repo_path}")
                     return 1
 
+                head_before = git_head(repo_path)
+
                 # Run git pull
                 result = subprocess.run(
                     ['git', 'pull'],
@@ -443,37 +467,63 @@ def main():
                     return 1
 
                 print(f"Successfully updated:\n{result.stdout}")
+                head_after = git_head(repo_path)
             except Exception as e:
                 logger.error(f"Error updating repository: {e}")
                 return 1
 
             # The repository and the CLI are two separate things: pulling
-            # skills does not upgrade the installed program. Without this
-            # feedback `til update` reports total success while leaving a
-            # stale binary in place, which looks like "update does
-            # nothing".
+            # skills does not upgrade the installed program. `til update`
+            # therefore does BOTH by default — updating only half of an
+            # installation and reporting success is what made `til
+            # update` look like it did nothing.
             argv_refresh, hint = cli_refresh_command(repo_path)
 
-            if not args.cli:
-                from til_cli import __version__ as running_version
-                repo_version = repo_cli_version(repo_path)
-                # The comparison gates only this hint, never the action:
-                # a binary can be stale at an equal version string, so
-                # --cli always reinstalls unconditionally.
-                if hint and repo_version and repo_version != running_version:
-                    print()
-                    print(f"CLI v{running_version} installed, "
-                          f"repository has v{repo_version}.")
-                    print("Refresh the CLI itself with:  til update --cli")
+            if args.no_cli:
+                return 0
+
+            from til_cli import __version__ as running_version
+            repo_version = repo_cli_version(repo_path)
+
+            # Reinstall when anything might have moved: new commits, or a
+            # version mismatch (which catches a binary installed stale
+            # against an already-current repo — the common case). Skipped
+            # only when the pull was a no-op AND versions agree, so the
+            # steady-state `til update` stays fast. `--cli` forces it,
+            # for the residual case of a stale binary at an equal
+            # version string.
+            pulled_changes = (
+                head_before is None or head_after is None
+                or head_before != head_after)
+            version_drift = (
+                repo_version is not None and repo_version != running_version)
+            if not (args.cli or pulled_changes or version_drift):
                 return 0
 
             if argv_refresh is None:
                 if hint is None:
-                    print("CLI runs directly from this checkout — "
-                          "already up to date.")
+                    # Running from the checkout: the pull *was* the CLI
+                    # update.
                     return 0
+                print()
                 print(f"Refresh the CLI with:  {hint}")
                 return 1
+
+            # Last statement of the command: this replaces the venv the
+            # running interpreter lives in. Safe on POSIX (the process
+            # holds its inodes) precisely because nothing runs after it.
+            print(f"\nRefreshing CLI:  {hint}")
+            try:
+                refresh = subprocess.run(argv_refresh)
+            except OSError as e:
+                logger.error(f"Could not run {argv_refresh[0]}: {e}")
+                logger.error(f"Run manually:  {hint}")
+                return 1
+            if refresh.returncode != 0:
+                logger.error(f"CLI refresh failed. Run manually:  {hint}")
+                return 1
+            print(f"CLI updated to v{repo_version or 'latest'}.")
+            return 0
 
             # Last statement of the command: this replaces the venv the
             # running interpreter lives in. Safe on POSIX (the process

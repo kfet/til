@@ -17,7 +17,7 @@ _til() {
         'validate:Validate TIL entries'
         'version:Show version information'
         'config:Configure TIL repository location'
-        'update:Update TIL repository (--cli also reinstalls the CLI)'
+        'update:Update the skills repo and the CLI (--no-cli skips the CLI)'
     )
 
     _arguments -C \

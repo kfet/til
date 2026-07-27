@@ -3,6 +3,7 @@
 Tests for the TIL CLI Tool
 """
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import List
@@ -623,10 +624,26 @@ class TestRepoDiscovery(unittest.TestCase):
         self.assertEqual(repo_cli_version(self.repo), "9.9.9")
         self.assertIsNone(repo_cli_version(self.empty))
 
-    def test_update_help_documents_cli_flag(self):
+    def test_update_help_documents_cli_flags(self):
         proc = self._run_til("update", "--help")
         self.assertEqual(proc.returncode, 0)
         self.assertIn("--cli", proc.stdout)
+        self.assertIn("--no-cli", proc.stdout)
+
+    def test_git_head_reads_sha_and_tolerates_non_repo(self):
+        git_head = load_cli_main().git_head
+        self.assertIsNone(git_head(self.empty))
+        subprocess.run(["git", "init", "-q"], cwd=self.repo, check=True)
+        subprocess.run(["git", "config", "user.email", "t@t"],
+                       cwd=self.repo, check=True)
+        subprocess.run(["git", "config", "user.name", "t"],
+                       cwd=self.repo, check=True)
+        (self.repo / "f").write_text("x")
+        subprocess.run(["git", "add", "-A"], cwd=self.repo, check=True)
+        subprocess.run(["git", "commit", "-qm", "c"], cwd=self.repo, check=True)
+        head = git_head(self.repo)
+        self.assertIsNotNone(head)
+        self.assertEqual(len(head), 40)
 
     def test_version_flag_works(self):
         proc = self._run_til("--version")

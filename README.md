@@ -51,8 +51,9 @@ til show <slug>         # render a skill (uses glow/bat when stdout is a TTY)
 til show --plain <slug> # raw markdown (also when NO_COLOR is set or piped)
 til execute <slug> <section>   # run code blocks from a `(executable)` section
 til validate            # check every skill against the Agent Skill spec
-til update              # git pull the skills repo
-til update --cli        # ...and reinstall the CLI itself from it
+til update              # pull the skills repo AND refresh the til CLI
+til update --no-cli     # skills only, leave the installed CLI alone
+til update --cli        # force the CLI reinstall even if it looks current
 ```
 
 `til show` auto-picks a renderer in this order: whatever `TIL_RENDERER`
