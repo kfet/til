@@ -19,6 +19,9 @@ from til_cli.til import (
     execute_code_block,
     validate_entry,
     get_til_repo_path,
+    find_til_repo_path,
+    describe_repo_search,
+    looks_like_til_repo,
     check_for_repo_updates
 )
 from til_cli.render import render as render_markdown
@@ -38,9 +41,35 @@ def auto_update_repository(repo_path, command):
         # 'update' handles its own pull. '_complete' must stay fast and
         # side-effect-free.
         return
-    # Only force update for commands that depend on content
-    force_update = command in ['list', 'search', 'show', 'execute']
-    check_for_repo_updates(repo_path, force=force_update)
+    if os.environ.get('TIL_NO_AUTO_UPDATE'):
+        return
+    # Content commands may refresh, but always through the 12-hour
+    # throttle in check_for_repo_updates(). Forcing it here made every
+    # single ``til list`` shell out to ``git fetch`` — up to 5s of
+    # latency per invocation, and a hang risk on flaky networks.
+    check_for_repo_updates(repo_path, force=False)
+
+
+# Commands that are meaningless without a populated skills repository.
+_NEEDS_ENTRIES = ('list', 'search', 'show', 'execute', 'validate')
+
+
+def _report_missing_repo(root_dir) -> None:
+    """Explain, on stderr, that no skills were found and how to fix it."""
+    logger.error(
+        "No skills found: %s does not contain skills/<slug>/SKILL.md",
+        root_dir,
+    )
+    logger.error("Looked in (first match wins):")
+    logger.error("%s", describe_repo_search())
+    logger.error("")
+    logger.error("Fix with one of:")
+    logger.error("  til config /path/to/til-repo    # persist in ~/.tilconfig")
+    logger.error("  til --repo-path /path/to/til-repo <command>")
+    logger.error("  export TIL_REPO_PATH=/path/to/til-repo")
+    logger.error(
+        "  curl -sSL https://raw.githubusercontent.com/kfet/til/main/install.sh | bash"
+    )
 
 
 # Public, user-facing subcommands. Single source of truth used by both the
@@ -181,6 +210,12 @@ def main():
 
         # Add global repo-path argument
         parser.add_argument('--repo-path', help='Path to TIL repository')
+        # ``til --version`` is what everyone types first; without this it
+        # died with a usage error while ``til version`` worked.
+        from til_cli import __version__ as _pkg_version
+        parser.add_argument(
+            '--version', action='version',
+            version=f"TIL CLI Tool v{_pkg_version}")
 
         # Parse args
         args = parser.parse_args()
@@ -191,28 +226,42 @@ def main():
 
         # Get repository path
         if hasattr(args, 'repo_path') and args.repo_path:
-            root_dir = Path(args.repo_path)
+            root_dir = Path(args.repo_path).expanduser()
+            repo_source = '--repo-path'
         else:
-            root_dir = get_til_repo_path()
+            found, repo_source = find_til_repo_path()
+            root_dir = found if found is not None else Path.cwd()
 
         # Handle config command (This must be handled before initializing the collection)
         if args.command == 'config':
             config_path = Path.home() / '.tilconfig'
             if args.path:
-                repo_path = Path(args.path).resolve()
+                repo_path = Path(args.path).expanduser().resolve()
 
                 if not repo_path.is_dir():
                     logger.error(f"Error: Not a valid directory: {repo_path}")
+                    return 1
+                if not looks_like_til_repo(repo_path):
+                    # Refuse to persist a path that will fail later: the
+                    # original code accepted any directory, which is how
+                    # a silently empty ~/.tilconfig happens.
+                    logger.error(
+                        f"Error: No skills/<slug>/SKILL.md under: {repo_path}")
                     return 1
 
                 config_path.write_text(str(repo_path))
                 print(f"TIL repository path set to: {repo_path}")
                 return 0
 
-            elif config_path.exists():
-                repo_path = Path(config_path.read_text().strip())
-                print(f"TIL repository path: {repo_path}")
-                return 0
+            # No argument: report what the CLI would actually use. The
+            # previous code only printed when ~/.tilconfig existed and
+            # otherwise fell through to a bare help dump.
+            print(f"TIL repository path: {root_dir}")
+            print(f"Resolved from: {repo_source}")
+            if not looks_like_til_repo(root_dir):
+                print("Warning: no skills found there", file=sys.stderr)
+                return 1
+            return 0
 
         # NOTE: ``args.command == '_complete'`` is unreachable here because
         # ``_handle_complete`` runs at the top of ``main()`` and the
@@ -223,6 +272,14 @@ def main():
 
         # Initialize TIL collection
         collection = TILCollection(root_dir)
+
+        # Fail loudly instead of pretending an empty repository is a
+        # successful run. This is the difference between "til list prints
+        # nothing, exit 0" (indistinguishable from "no skills exist") and
+        # an actionable error.
+        if args.command in _NEEDS_ENTRIES and not collection.entries:
+            _report_missing_repo(root_dir)
+            return 1
 
         # Execute command
         if args.command == 'list':
@@ -330,6 +387,7 @@ def main():
             print(f"Python: {sys.version.split()[0]}")
             print(f"Platform: {sys_platform.system()}")
             print(f"Repository path: {root_dir}")
+            print(f"Resolved from: {repo_source}")
 
         else:
             parser.print_help()

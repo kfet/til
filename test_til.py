@@ -473,6 +473,118 @@ This file is missing frontmatter and a level-1 heading.
         self.assertEqual(run("sections", "no-such-slug"), [])
 
 
+class TestRepoDiscovery(unittest.TestCase):
+    """Locating the skills repository, and failing loudly when it is absent.
+
+    Regression cover for: `til list` printing nothing with exit 0 when no
+    ~/.tilconfig existed — indistinguishable from "the repo has no skills".
+    """
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp_dir.name)
+
+        # A directory that looks like a real repo.
+        self.repo = self.root / "repo"
+        skill_dir = self.repo / "skills" / "sample"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            '---\nname: sample\ndescription: "S. Use when testing."\n---\n\n# S\n')
+
+        # A directory that exists but holds no skills.
+        self.empty = self.root / "empty"
+        self.empty.mkdir()
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def test_looks_like_til_repo(self):
+        from til_cli.til_cli.til import looks_like_til_repo
+        self.assertTrue(looks_like_til_repo(self.repo))
+        self.assertFalse(looks_like_til_repo(self.empty))
+        self.assertFalse(looks_like_til_repo(self.root / "nope"))
+        self.assertFalse(looks_like_til_repo(None))
+        self.assertFalse(looks_like_til_repo(""))
+
+    def test_env_var_must_actually_contain_skills(self):
+        """An existing-but-empty $TIL_REPO_PATH must not win.
+
+        The old code accepted any is_dir() path, so a stale env var
+        silently produced an empty collection.
+        """
+        from til_cli.til_cli.til import find_til_repo_path
+        with patch.dict(os.environ, {"TIL_REPO_PATH": str(self.empty)}):
+            with patch("pathlib.Path.home", return_value=self.root):
+                with patch("pathlib.Path.cwd", return_value=self.empty):
+                    path, _ = find_til_repo_path()
+        self.assertNotEqual(path, self.empty)
+
+    def test_env_var_wins_when_valid(self):
+        from til_cli.til_cli.til import find_til_repo_path
+        with patch.dict(os.environ, {"TIL_REPO_PATH": str(self.repo)}):
+            path, source = find_til_repo_path()
+        self.assertEqual(path, self.repo.resolve())
+        self.assertEqual(source, "$TIL_REPO_PATH")
+
+    def test_found_by_walking_up_from_cwd(self):
+        """Running anywhere inside a clone should find the repo."""
+        from til_cli.til_cli.til import find_til_repo_path
+        deep = self.repo / "skills" / "sample"
+        env = {k: v for k, v in os.environ.items() if k != "TIL_REPO_PATH"}
+        with patch.dict(os.environ, env, clear=True):
+            with patch("pathlib.Path.home", return_value=self.empty):
+                with patch("pathlib.Path.cwd", return_value=deep):
+                    path, source = find_til_repo_path()
+        self.assertEqual(path, self.repo.resolve())
+        self.assertEqual(source, "current directory tree")
+
+    def test_describe_repo_search_lists_candidates(self):
+        from til_cli.til_cli.til import describe_repo_search
+        text = describe_repo_search()
+        for label in ("$TIL_REPO_PATH", "~/.tilconfig", "~/.til-repo"):
+            self.assertIn(label, text)
+
+    def _run_til(self, *args):
+        import subprocess
+        launcher = Path(__file__).parent / "til"
+        return subprocess.run([str(launcher), *args],
+                              capture_output=True, text=True)
+
+    def test_list_on_empty_repo_fails_loudly(self):
+        proc = self._run_til("--repo-path", str(self.empty), "list")
+        self.assertEqual(proc.returncode, 1,
+                         "empty repo must not exit 0 with no output")
+        self.assertIn("No skills found", proc.stderr)
+        self.assertIn("til config", proc.stderr)
+
+    def test_validate_on_empty_repo_does_not_claim_success(self):
+        proc = self._run_til("--repo-path", str(self.empty), "validate")
+        self.assertEqual(proc.returncode, 1)
+        self.assertNotIn("All entries valid!", proc.stdout)
+
+    def test_config_rejects_directory_without_skills(self):
+        proc = self._run_til("config", str(self.empty))
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("No skills", proc.stderr)
+
+    def test_version_flag_works(self):
+        proc = self._run_til("--version")
+        self.assertEqual(proc.returncode, 0)
+        self.assertIn("TIL CLI Tool", proc.stdout)
+
+    def test_package_version_matches_setup_py(self):
+        """setup.py derives its version from __init__.py; guard the drift."""
+        import re
+        from til_cli.til_cli import __version__
+        setup_src = (Path(__file__).parent / "til_cli" / "setup.py").read_text()
+        self.assertIn("__init__.py", setup_src,
+                      "setup.py must read the version from __init__.py")
+        init_src = (Path(__file__).parent / "til_cli" / "til_cli"
+                    / "__init__.py").read_text()
+        m = re.search(r'__version__\s*=\s*["\']([^"\']+)', init_src)
+        self.assertEqual(m.group(1), __version__)
+
+
 class TestRenderer(unittest.TestCase):
     """Renderer selection rules for ``til show``."""
 

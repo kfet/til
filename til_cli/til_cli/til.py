@@ -382,31 +382,106 @@ def validate_entry(entry: TILEntry) -> List[str]:
     return errors
 
 
-def get_til_repo_path():
-    """
-    Get the TIL repository path using the following priority order:
-    1. Command line argument
-    2. Environment variable
-    3. Config file
-    4. Current directory (fallback)
-    """
-    # Check environment variable
-    env_path = os.environ.get('TIL_REPO_PATH')
-    if env_path and Path(env_path).is_dir():
-        return Path(env_path)
+def looks_like_til_repo(path) -> bool:
+    """True iff ``path`` is a directory holding at least one skill.
 
-    # Check config file in user's home directory
+    The marker is ``skills/<slug>/SKILL.md`` — the same layout the loader
+    reads. Checking for content (rather than merely ``is_dir()``) is what
+    makes candidate probing meaningful: an existing-but-wrong directory
+    must not win over a later candidate that actually has the skills.
+    """
+    if not path:
+        return False
+    try:
+        root = Path(path).expanduser()
+    except (TypeError, ValueError):
+        return False
+    if not root.is_dir():
+        return False
+    return any(root.glob('skills/*/SKILL.md'))
+
+
+def _read_config_file() -> Optional[str]:
+    """Return the path recorded in ``~/.tilconfig``, if readable."""
     config_path = Path.home() / '.tilconfig'
-    if config_path.exists():
-        try:
-            config = config_path.read_text().strip()
-            if Path(config).is_dir():
-                return Path(config)
-        except:
-            pass
+    try:
+        if config_path.exists():
+            value = config_path.read_text().strip()
+            return value or None
+    except OSError:
+        pass
+    return None
 
-    # Fallback to current directory
-    return Path.cwd()
+
+def iter_repo_candidates():
+    """Yield ``(source, path)`` candidates in priority order.
+
+    ``source`` is a short human-readable label used in diagnostics so a
+    user (or agent) can see *why* a given directory was chosen — or which
+    places were tried when nothing was found.
+    """
+    yield ('$TIL_REPO_PATH', os.environ.get('TIL_REPO_PATH'))
+    yield ('~/.tilconfig', _read_config_file())
+
+    # Walking up from the CWD makes the CLI "just work" anywhere inside a
+    # clone of the repo, which is the common case for both humans editing
+    # skills and agents invoked with the repo as their working directory.
+    cwd = Path.cwd()
+    for parent in [cwd, *cwd.parents]:
+        yield ('current directory tree', parent)
+
+    # Default clone location used by install.sh.
+    yield ('~/.til-repo', Path.home() / '.til-repo')
+
+    # Running from a source checkout: til_cli/til_cli/til.py -> repo root.
+    yield ('installed source tree', Path(__file__).resolve().parents[2])
+
+    # Data snapshot shipped alongside a packaged install (Homebrew's
+    # formula points TIL_REPO_PATH here, but resolve it anyway so a plain
+    # ``pip install`` with bundled data also works).
+    for prefix in {sys.prefix, getattr(sys, 'base_prefix', sys.prefix)}:
+        yield ('packaged snapshot', Path(prefix) / 'share' / 'til')
+
+
+def find_til_repo_path() -> Tuple[Optional[Path], str]:
+    """Locate the skills repository.
+
+    Returns ``(path, source)``. ``path`` is ``None`` when no candidate
+    actually contains skills — callers are expected to report that as an
+    error rather than silently proceeding with an empty collection.
+    """
+    for source, candidate in iter_repo_candidates():
+        if looks_like_til_repo(candidate):
+            return Path(candidate).expanduser().resolve(), source
+    return None, 'not found'
+
+
+def describe_repo_search() -> str:
+    """Human-readable summary of where the repository was looked for."""
+    lines = []
+    seen = set()
+    for source, candidate in iter_repo_candidates():
+        if not candidate:
+            lines.append(f"  - {source}: (unset)")
+            continue
+        text = str(candidate)
+        key = (source, text)
+        if key in seen:
+            continue
+        seen.add(key)
+        lines.append(f"  - {source}: {text}")
+    return "\n".join(lines)
+
+
+def get_til_repo_path():
+    """Backwards-compatible wrapper returning a usable directory.
+
+    Falls back to the current directory when nothing is found so existing
+    callers keep working; use :func:`find_til_repo_path` when you need to
+    distinguish "found" from "gave up".
+    """
+    path, _ = find_til_repo_path()
+    return path if path is not None else Path.cwd()
 
 
 def check_for_repo_updates(repo_path: Path, force: bool = False) -> bool:

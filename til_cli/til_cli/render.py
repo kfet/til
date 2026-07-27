@@ -16,8 +16,9 @@ import sys
 from typing import List, Optional, Sequence
 
 # Order in which we try to auto-pick a renderer when ``TIL_RENDERER`` is
-# unset or ``auto``. ``glow`` first because it formats Markdown; ``bat``
-# is a syntax highlighter for the raw source, which is still pleasant.
+# unset or ``auto``. ``bat`` first: it is far more commonly installed and
+# its grid style reads well for skill files; ``glow`` is the nicer true
+# Markdown formatter when present.
 _AUTO_ORDER: Sequence[str] = ("bat", "glow")
 
 

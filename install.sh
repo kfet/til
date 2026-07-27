@@ -46,9 +46,37 @@ printf '  Installing TIL CLI Tool\n'
 printf '=============================================\n\n'
 
 # ----------------------------- pipx ----------------------------------------
+install_pipx() {
+    # Ubuntu 24.04 / Debian 12+ ship PEP 668 "externally managed"
+    # interpreters where `pip install --user` hard-fails, and a fresh
+    # Ubuntu Server has no `pip` at all. Prefer the OS package manager,
+    # which is the supported route on those systems.
+    if has apt-get; then
+        note "Installing pipx via apt..."
+        sudo apt-get update -qq && sudo apt-get install -y pipx && return 0
+    elif has dnf; then
+        note "Installing pipx via dnf..."
+        sudo dnf install -y pipx && return 0
+    elif has brew; then
+        note "Installing pipx via Homebrew..."
+        brew install pipx && return 0
+    fi
+
+    note "Installing pipx via pip..."
+    if python3 -m pip install --user pipx 2>/dev/null; then
+        return 0
+    fi
+    # Last resort on PEP 668 systems without a packaged pipx.
+    python3 -m pip install --user --break-system-packages pipx
+}
+
 if ! has pipx; then
-    note "Installing pipx..."
-    pip install --user pipx
+    install_pipx || {
+        err "Could not install pipx automatically."
+        warn "Install it with your package manager, then re-run install.sh:"
+        warn "  apt install pipx   |   dnf install pipx   |   brew install pipx"
+        exit 1
+    }
     export PATH="$PATH:$HOME/.local/bin"
     if ! has pipx; then
         err "pipx installation succeeded but command not found on PATH."
