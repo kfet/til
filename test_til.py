@@ -15,6 +15,33 @@ sys.path.append(str(Path(__file__).parent))
 from til_cli.til_cli.til import TILEntry, TILCollection, validate_entry, execute_code_block
 
 
+def load_cli_main():
+    """Import ``til_cli.__main__`` the way an installed CLI sees it.
+
+    The repo nests the package as ``til_cli/til_cli/``, and the modules use
+    absolute imports (``from til_cli.til import ...``). Putting the inner
+    directory on sys.path permanently would shadow the outer namespace
+    package that the rest of this file imports, so do it in a scope that is
+    unwound afterwards.
+    """
+    import importlib
+    inner = str(Path(__file__).parent / "til_cli")
+    saved_path = list(sys.path)
+    saved_modules = {k: v for k, v in sys.modules.items()
+                     if k == "til_cli" or k.startswith("til_cli.")}
+    for name in saved_modules:
+        del sys.modules[name]
+    sys.path.insert(0, inner)
+    try:
+        return importlib.import_module("til_cli.__main__")
+    finally:
+        sys.path[:] = saved_path
+        for name in [k for k in sys.modules
+                     if k == "til_cli" or k.startswith("til_cli.")]:
+            del sys.modules[name]
+        sys.modules.update(saved_modules)
+
+
 class TestTILTool(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory for test files
@@ -566,6 +593,40 @@ class TestRepoDiscovery(unittest.TestCase):
         proc = self._run_til("config", str(self.empty))
         self.assertEqual(proc.returncode, 1)
         self.assertIn("No skills", proc.stderr)
+
+    def test_detect_install_method_from_prefix(self):
+        """Homebrew vs pipx must never be confused: telling a brew user to
+        run pipx would install a second, shadowing copy."""
+        detect_install_method = load_cli_main().detect_install_method
+        with patch("sys.prefix", "/opt/homebrew/Cellar/til/1.1.0/libexec"):
+            self.assertEqual(detect_install_method(), "brew")
+        with patch("sys.prefix", "/home/u/.local/share/pipx/venvs/til-cli"):
+            self.assertEqual(detect_install_method(), "pipx")
+
+    def test_cli_refresh_command_per_method(self):
+        cli_refresh_command = load_cli_main().cli_refresh_command
+        with patch("sys.prefix", "/opt/homebrew/Cellar/til/1.1.0/libexec"):
+            argv, hint = cli_refresh_command(self.repo)
+        self.assertIsNone(argv, "brew must never shell out to pipx")
+        self.assertIn("brew", hint)
+
+        with patch("sys.prefix", "/home/u/.local/share/pipx/venvs/til-cli"):
+            argv, hint = cli_refresh_command(self.repo)
+        self.assertEqual(argv[:3], ["pipx", "install", "--force"])
+        self.assertTrue(argv[3].endswith("til_cli"))
+
+    def test_repo_cli_version_reads_without_importing(self):
+        repo_cli_version = load_cli_main().repo_cli_version
+        pkg = self.repo / "til_cli" / "til_cli"
+        pkg.mkdir(parents=True)
+        (pkg / "__init__.py").write_text('__version__ = "9.9.9"\n')
+        self.assertEqual(repo_cli_version(self.repo), "9.9.9")
+        self.assertIsNone(repo_cli_version(self.empty))
+
+    def test_update_help_documents_cli_flag(self):
+        proc = self._run_til("update", "--help")
+        self.assertEqual(proc.returncode, 0)
+        self.assertIn("--cli", proc.stdout)
 
     def test_version_flag_works(self):
         proc = self._run_til("--version")

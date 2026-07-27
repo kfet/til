@@ -84,6 +84,9 @@ _til() {
             # Argument is a directory path.
             COMPREPLY=( $(compgen -d -- "$cur") )
             ;;
+        update)
+            COMPREPLY=( $(compgen -W "--cli" -- "$cur") )
+            ;;
         *)
             COMPREPLY=()
             ;;

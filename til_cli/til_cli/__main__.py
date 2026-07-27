@@ -8,9 +8,11 @@ Command-line interface for the TIL CLI Tool.
 import argparse
 import logging
 import os
+import re
 import sys
 import subprocess
 from pathlib import Path
+from typing import Optional
 import platform as sys_platform  # Rename to avoid conflicts
 
 # Import core functionality
@@ -147,6 +149,57 @@ def _handle_complete(argv: list) -> int:
     return 0
 
 
+def detect_install_method() -> str:
+    """How was this CLI installed? Determines how to refresh it.
+
+    The venv prefix is the reliable signal: Homebrew's formula builds
+    into ``.../Cellar/til/<ver>/libexec``, pipx into ``.../pipx/venvs/``.
+    Telling a brew user to run pipx would install a second, shadowing
+    copy — so this distinction is load-bearing, not cosmetic.
+    """
+    prefix = str(Path(sys.prefix).resolve())
+    if '/Cellar/til/' in prefix or '/linuxbrew/' in prefix:
+        return 'brew'
+    if '/pipx/venvs/' in prefix:
+        return 'pipx'
+    repo = Path(__file__).resolve().parents[2]
+    if looks_like_til_repo(repo):
+        # Running straight from a checkout (./til launcher): the code
+        # *is* the repo, so pulling the repo already updated the CLI.
+        return 'source'
+    return 'unknown'
+
+
+def repo_cli_version(repo_path) -> Optional[str]:
+    """Version recorded in the repository's til_cli/til_cli/__init__.py.
+
+    Read as text, never imported: importing the repo's package into the
+    running process would shadow the installed one.
+    """
+    init_file = Path(repo_path) / 'til_cli' / 'til_cli' / '__init__.py'
+    try:
+        match = re.search(
+            r'^__version__\s*=\s*["\']([^"\']+)["\']',
+            init_file.read_text(), re.MULTILINE)
+    except OSError:
+        return None
+    return match.group(1) if match else None
+
+
+def cli_refresh_command(repo_path):
+    """Return ``(argv, human_hint)`` for refreshing the CLI in place."""
+    method = detect_install_method()
+    if method == 'brew':
+        return None, 'brew update && brew upgrade til'
+    if method == 'pipx':
+        target = str(Path(repo_path) / 'til_cli')
+        return ['pipx', 'install', '--force', target], \
+            f'pipx install --force {target}'
+    if method == 'source':
+        return None, None
+    return None, f'reinstall from {Path(repo_path) / "til_cli"}'
+
+
 def main():
     """Main entry point for the TIL CLI tool"""
     # Intercept the hidden completion helper before any heavier work or
@@ -200,8 +253,11 @@ def main():
             'path', nargs='?', help='Path to TIL repository')
 
         # Update command
-        subparsers.add_parser(
+        update_parser = subparsers.add_parser(
             'update', help='Update TIL repository with latest changes')
+        update_parser.add_argument(
+            '--cli', action='store_true',
+            help='Also reinstall the til CLI itself from the repository')
 
         # NOTE: the hidden ``_complete`` helper is intercepted at the top
         # of ``main()`` before argparse runs, so it is intentionally NOT
@@ -354,6 +410,17 @@ def main():
 
         elif args.command == 'update':
             repo_path = root_dir
+            method = detect_install_method()
+
+            if method == 'brew':
+                # A Homebrew install has no git checkout to pull (the
+                # skills are a static snapshot under pkgshare), and the
+                # CLI must never be refreshed with pipx — that would
+                # install a second, shadowing copy.
+                print("This til is managed by Homebrew. Update with:")
+                print("  brew update && brew upgrade til")
+                return 0
+
             print(f"Updating TIL repository at: {repo_path}")
             try:
                 # Check if it's a git repository
@@ -370,16 +437,59 @@ def main():
                     text=True
                 )
 
-                if result.returncode == 0:
-                    print(f"Successfully updated:\n{result.stdout}")
-                    return 0
-                else:
+                if result.returncode != 0:
                     logger.error(
                         f"Error updating repository:\n{result.stderr}")
                     return 1
+
+                print(f"Successfully updated:\n{result.stdout}")
             except Exception as e:
                 logger.error(f"Error updating repository: {e}")
                 return 1
+
+            # The repository and the CLI are two separate things: pulling
+            # skills does not upgrade the installed program. Without this
+            # feedback `til update` reports total success while leaving a
+            # stale binary in place, which looks like "update does
+            # nothing".
+            argv_refresh, hint = cli_refresh_command(repo_path)
+
+            if not args.cli:
+                from til_cli import __version__ as running_version
+                repo_version = repo_cli_version(repo_path)
+                # The comparison gates only this hint, never the action:
+                # a binary can be stale at an equal version string, so
+                # --cli always reinstalls unconditionally.
+                if hint and repo_version and repo_version != running_version:
+                    print()
+                    print(f"CLI v{running_version} installed, "
+                          f"repository has v{repo_version}.")
+                    print("Refresh the CLI itself with:  til update --cli")
+                return 0
+
+            if argv_refresh is None:
+                if hint is None:
+                    print("CLI runs directly from this checkout — "
+                          "already up to date.")
+                    return 0
+                print(f"Refresh the CLI with:  {hint}")
+                return 1
+
+            # Last statement of the command: this replaces the venv the
+            # running interpreter lives in. Safe on POSIX (the process
+            # holds its inodes) precisely because nothing runs after it.
+            print(f"Refreshing CLI:  {hint}")
+            try:
+                refresh = subprocess.run(argv_refresh)
+            except OSError as e:
+                logger.error(f"Could not run {argv_refresh[0]}: {e}")
+                logger.error(f"Run manually:  {hint}")
+                return 1
+            if refresh.returncode != 0:
+                logger.error(f"CLI refresh failed. Run manually:  {hint}")
+                return 1
+            print("CLI updated.")
+            return 0
 
         elif args.command == 'version':
             from til_cli import __version__
@@ -388,6 +498,7 @@ def main():
             print(f"Platform: {sys_platform.system()}")
             print(f"Repository path: {root_dir}")
             print(f"Resolved from: {repo_source}")
+            print(f"Installed via: {detect_install_method()}")
 
         else:
             parser.print_help()
