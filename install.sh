@@ -9,17 +9,28 @@ set -euo pipefail
 
 # ----------------------------- arguments -----------------------------------
 INSTALL_COMPLETION="ask"   # ask | yes | no
+UNINSTALL=no
+KEEP_REPO=no
+ASSUME_YES=no
 for arg in "$@"; do
     case "$arg" in
         --completion=yes|--completion) INSTALL_COMPLETION=yes ;;
         --completion=no|--no-completion) INSTALL_COMPLETION=no ;;
+        --uninstall) UNINSTALL=yes ;;
+        --keep-repo) KEEP_REPO=yes ;;
+        --yes|-y) ASSUME_YES=yes ;;
         --help|-h)
             cat <<'USAGE'
 Usage: install.sh [--completion=yes|no]
+       install.sh --uninstall [--keep-repo] [--yes]
 
   --completion=yes     install shell completion non-interactively
   --completion=no      skip the completion prompt
   (default: prompt when running interactively, skip otherwise)
+
+  --uninstall          remove the CLI, completions, config and repo clone
+  --keep-repo          with --uninstall: keep the cloned skills repo
+  --yes, -y            do not prompt for confirmation
 
 Environment:
   TIL_INSTALL_DIR      where to clone the TIL repo (default: ~/.til-repo)
@@ -39,6 +50,86 @@ warn()  { printf '\033[1;33m!\033[0m %s\n' "$*" >&2; }
 err()   { printf '\033[1;31m✗\033[0m %s\n' "$*" >&2; }
 
 has() { command -v "$1" >/dev/null 2>&1; }
+
+# ----------------------------- uninstall -----------------------------------
+if [ "$UNINSTALL" = yes ]; then
+    printf '\n=============================================\n'
+    printf '  Uninstalling TIL CLI Tool\n'
+    printf '=============================================\n\n'
+
+    # A Homebrew install must never be removed with pipx: they are
+    # different installations, and pipx would silently report nothing to
+    # do while leaving the brew copy on PATH.
+    til_path="$(command -v til 2>/dev/null || true)"
+    case "$til_path" in
+        */Cellar/*|/opt/homebrew/*|/usr/local/Homebrew/*|/home/linuxbrew/*)
+            err "This til was installed by Homebrew, not this script."
+            warn "Remove it with:  brew uninstall til"
+            exit 1
+            ;;
+    esac
+
+    targets=()
+    has pipx && pipx list 2>/dev/null | grep -q 'package til-cli' \
+        && targets+=("pipx package til-cli")
+    for f in "$HOME/.local/share/bash-completion/completions/til" \
+             "$HOME/.zsh/completions/_til" \
+             "$HOME/.tilconfig" \
+             "$HOME/.til_last_update"; do
+        [ -e "$f" ] || [ -L "$f" ] && targets+=("$f")
+    done
+    if [ "$KEEP_REPO" = no ] && [ -d "$REPO_DIR" ]; then
+        targets+=("$REPO_DIR  (skills repo clone)")
+    fi
+
+    if [ ${#targets[@]} -eq 0 ]; then
+        ok "Nothing to remove — til does not appear to be installed."
+        exit 0
+    fi
+
+    note "The following will be removed:"
+    for t in "${targets[@]}"; do printf '    %s\n' "$t"; done
+    printf '\n'
+
+    if [ "$ASSUME_YES" != yes ] && [ -t 0 ]; then
+        read -r -p "Proceed? [y/N] " reply
+        case "$reply" in
+            [yY]|[yY][eE][sS]) ;;
+            *) note "Aborted."; exit 0 ;;
+        esac
+    fi
+
+    if has pipx && pipx list 2>/dev/null | grep -q 'package til-cli'; then
+        pipx uninstall til-cli >/dev/null 2>&1 \
+            && ok "removed pipx package til-cli" \
+            || warn "pipx uninstall til-cli failed — remove it manually"
+    fi
+
+    for f in "$HOME/.local/share/bash-completion/completions/til" \
+             "$HOME/.zsh/completions/_til" \
+             "$HOME/.tilconfig" \
+             "$HOME/.til_last_update"; do
+        if [ -e "$f" ] || [ -L "$f" ]; then
+            rm -f "$f" && ok "removed $f"
+        fi
+    done
+
+    if [ "$KEEP_REPO" = no ] && [ -d "$REPO_DIR" ]; then
+        # This script may live inside REPO_DIR. Unlinking it is safe —
+        # bash keeps reading through its open fd — but the working
+        # directory must not be the tree being deleted.
+        cd /
+        rm -rf "$REPO_DIR" && ok "removed $REPO_DIR"
+    elif [ "$KEEP_REPO" = yes ]; then
+        note "kept skills repo at $REPO_DIR"
+    fi
+
+    printf '\n'
+    ok "til uninstalled."
+    note "If you added completions to your ~/.zshrc fpath by hand,"
+    note "that line is still there — remove it if you want."
+    exit 0
+fi
 
 # Banner
 printf '\n=============================================\n'

@@ -40,6 +40,16 @@ The installer prompts to drop bash/zsh completion under the right
 `fpath` / `bash-completion` directory; pass `--completion=yes` or
 `--completion=no` to skip the prompt.
 
+### Uninstall
+
+```bash
+~/.til-repo/install.sh --uninstall            # CLI, completions, config, repo
+~/.til-repo/install.sh --uninstall --keep-repo   # keep the skills clone
+```
+
+Add `--yes` to skip the confirmation. A Homebrew-installed `til` is
+detected and refused — remove that one with `brew uninstall til`.
+
 ## CLI overview
 
 Once installed:
