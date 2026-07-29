@@ -913,6 +913,10 @@ class TestRunCommand(unittest.TestCase):
 
     def test_run_missing_airan_end_to_end(self):
         """The CLI surfaces the actionable error when airan is absent."""
+        import shutil as _shutil
+        uv = _shutil.which("uv")
+        if not uv:
+            self.skipTest("uv not available for the ./til launcher")
         til_launcher = Path(__file__).parent / "til"
         with tempfile.TemporaryDirectory() as tmp:
             skill_dir = Path(tmp) / "skills" / "sample"
@@ -923,10 +927,7 @@ class TestRunCommand(unittest.TestCase):
             # A PATH with only the launcher's interpreter on it: no airan.
             bin_dir = Path(tmp) / "bin"
             bin_dir.mkdir()
-            import shutil as _shutil
-            uv = _shutil.which("uv")
-            if uv:
-                os.symlink(uv, bin_dir / "uv")
+            os.symlink(uv, bin_dir / "uv")
             env = dict(os.environ, PATH=f"{bin_dir}:/usr/bin:/bin")
             proc = subprocess.run(
                 [str(til_launcher), "--repo-path", str(tmp), "run", "sample"],

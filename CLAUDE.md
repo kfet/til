@@ -9,7 +9,13 @@ This repo holds my "Today I Learned" notes, now packaged as
 - Run the TIL CLI (uv launcher): `./til <command>`
 
 The CLI now matches the `skills/` layout: `./til list`, `./til search`,
-`./til show`, and `./til validate` all operate on `skills/<slug>/SKILL.md`.
+`./til show`, `./til path`, `./til execute`, `./til run`, and
+`./til validate` all operate on `skills/<slug>/SKILL.md`.
+`./til path <slug>` prints the absolute SKILL.md path. `./til execute`
+is mechanical (run a `(executable)` section's shell blocks); `./til run`
+is agentic (wrap the whole skill in an "apply this to this host"
+imperative and dispatch it via [airan](https://github.com/kfet/airan),
+a soft dependency needed by that command alone).
 `./til validate` enforces the Agent Skill spec — frontmatter `name` must
 equal the directory name and match `[a-z0-9-]{1,64}`, `description` must
 exist and be ≤1024 chars, the body must start with a level-1 heading, and

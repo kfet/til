@@ -9,6 +9,7 @@ set -euo pipefail
 
 # ----------------------------- arguments -----------------------------------
 INSTALL_COMPLETION="ask"   # ask | yes | no
+INSTALL_AIRAN="ask"        # ask | yes | no
 UNINSTALL=no
 KEEP_REPO=no
 ASSUME_YES=no
@@ -16,16 +17,20 @@ for arg in "$@"; do
     case "$arg" in
         --completion=yes|--completion) INSTALL_COMPLETION=yes ;;
         --completion=no|--no-completion) INSTALL_COMPLETION=no ;;
+        --airan=yes|--airan) INSTALL_AIRAN=yes ;;
+        --airan=no|--no-airan) INSTALL_AIRAN=no ;;
         --uninstall) UNINSTALL=yes ;;
         --keep-repo) KEEP_REPO=yes ;;
         --yes|-y) ASSUME_YES=yes ;;
         --help|-h)
             cat <<'USAGE'
-Usage: install.sh [--completion=yes|no]
+Usage: install.sh [--completion=yes|no] [--airan=yes|no]
        install.sh --uninstall [--keep-repo] [--yes]
 
   --completion=yes     install shell completion non-interactively
   --completion=no      skip the completion prompt
+  --airan=yes          also install airan (needed only by `til run`)
+  --airan=no           skip the airan prompt
   (default: prompt when running interactively, skip otherwise)
 
   --uninstall          remove the CLI, completions, config and repo clone
@@ -257,20 +262,85 @@ EOF
 
 maybe_install_completion
 
+# ----------------------------- airan (optional) ----------------------------
+# `til run` dispatches a skill to an AI coding agent through airan
+# (https://github.com/kfet/airan). Everything else — list/search/show/
+# execute/validate — works without it, so airan is OFFERED, never
+# imposed: nobody gets a Go binary pushed on them for `til show`.
+AIRAN_STATUS="not installed"
+
+maybe_install_airan() {
+    if has airan; then
+        AIRAN_STATUS="already installed ($(command -v airan))"
+        return 0
+    fi
+
+    case "$INSTALL_AIRAN" in
+        no) AIRAN_STATUS="skipped (--airan=no)"; return 0 ;;
+        ask)
+            if [[ ! -t 0 || ! -t 1 ]]; then
+                AIRAN_STATUS="skipped (non-interactive run)"
+                note "airan: skipped (non-interactive run). Only \`til run\` needs it;"
+                note "  pass --airan=yes, or install later from"
+                note "  https://github.com/kfet/airan"
+                return 0
+            fi
+            echo
+            note "airan dispatches a skill to an AI coding agent (\`til run\`)."
+            note "Optional: every other til command works without it."
+            read -r -p "Install airan? [y/N] " yn
+            case "$yn" in
+                y|Y|yes|YES|Yes) ;;
+                *) AIRAN_STATUS="skipped"; note "Skipping airan install."; return 0 ;;
+            esac
+            ;;
+    esac
+
+    if ! has curl; then
+        AIRAN_STATUS="failed (curl not found)"
+        warn "Cannot install airan: curl not found."
+        return 0
+    fi
+
+    note "Installing airan..."
+    if curl -fsSL https://raw.githubusercontent.com/kfet/airan/main/install.sh | sh; then
+        if has airan; then
+            AIRAN_STATUS="installed ($(command -v airan))"
+        else
+            # The installer commonly drops the binary in ~/.local/bin,
+            # which may not be on PATH in this shell.
+            AIRAN_STATUS="installed (not on PATH in this shell)"
+        fi
+        ok "airan: $AIRAN_STATUS"
+    else
+        AIRAN_STATUS="failed"
+        warn "airan install failed; \`til run\` will not work until it is on PATH."
+    fi
+}
+
+maybe_install_airan
+
 # ----------------------------- post-install summary ------------------------
 printf '\n'
 ok "Installation complete."
 printf '\n'
 echo "TIL repository: $REPO_DIR"
 echo "til binary:     $(command -v til)"
+echo "airan:          $AIRAN_STATUS"
 echo
 echo "Try:"
 echo "  til list              # list every skill"
 echo "  til search git        # search for git-related skills"
 echo "  til show <slug>       # view a skill (uses bat/glow if installed)"
 echo "  til validate          # check skill format"
+echo "  til path <slug>       # print a skill's file path"
+echo "  til run <slug>        # apply a skill to this host via an AI agent"
 echo "  til update            # pull latest skills"
 echo
+if ! has airan; then
+    note "\`til run\` needs airan. Install it any time with:"
+    note "  curl -fsSL https://raw.githubusercontent.com/kfet/airan/main/install.sh | sh"
+fi
 if ! has glow && ! has bat; then
     warn "Neither 'glow' nor 'bat' is installed — \`til show\` will print"
     warn "plain text. Install one of them for syntax-highlighted output."

@@ -40,6 +40,10 @@ The installer prompts to drop bash/zsh completion under the right
 `fpath` / `bash-completion` directory; pass `--completion=yes` or
 `--completion=no` to skip the prompt.
 
+It also offers to install [airan](https://github.com/kfet/airan), which
+only `til run` needs — pass `--airan=yes` or `--airan=no` to skip that
+prompt. Everything else works without it.
+
 ### Uninstall
 
 ```bash
@@ -59,12 +63,21 @@ til list                # list every skill
 til search <term>       # full-text search
 til show <slug>         # render a skill (uses glow/bat when stdout is a TTY)
 til show --plain <slug> # raw markdown (also when NO_COLOR is set or piped)
-til execute <slug> <section>   # run code blocks from a `(executable)` section
+til path <slug>         # print the absolute path to that skill's SKILL.md
+til execute <slug> <section>   # mechanically run a `(executable)` section's shell blocks
+til run <slug>          # hand the whole skill to an AI agent to apply it here
 til validate            # check every skill against the Agent Skill spec
 til update              # pull the skills repo AND refresh the til CLI
 til update --no-cli     # skills only, leave the installed CLI alone
 til update --cli        # force the CLI reinstall even if it looks current
 ```
+
+`til execute` and `til run` are deliberately different: `execute` is
+mechanical (run these shell blocks, with a confirmation prompt), `run` is
+agentic (wrap the skill in an "apply this to the current host, verify,
+report what changed" instruction and dispatch it to an AI coding agent
+via [airan](https://github.com/kfet/airan)). `run` pins no backend, so
+airan resolves `$AIRAN_BACKEND` then its configured default.
 
 `til show` auto-picks a renderer in this order: whatever `TIL_RENDERER`
 is set to, then `bat`, then `glow`. With none installed it just prints
