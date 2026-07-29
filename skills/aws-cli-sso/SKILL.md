@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: aws-cli-sso
 description: "Configure AWS CLI to use AWS SSO. TIL note about aws. Use when working with aws and the user mentions cli sso or related topics."

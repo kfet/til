@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: tmux-tpm-plugins
 description: "Common tpm plugins and configuration to add. TIL note about tmux. Use when working with tmux and the user mentions tpm plugins or related topics."

@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: python-dataclasses
 description: "Use Python Dataclasses. TIL note about python. Use when working with python and the user mentions dataclasses or related topics."

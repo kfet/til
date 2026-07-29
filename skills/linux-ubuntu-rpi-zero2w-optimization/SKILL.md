@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: linux-ubuntu-rpi-zero2w-optimization
 description: "Optimizing Ubuntu 24.04 on Raspberry Pi Zero 2W. TIL note about linux. Use when working with linux and the user mentions ubuntu rpi zero2w optimization or related topics."

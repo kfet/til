@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: tmux-conf-scroll-buffer-size
 description: "Increase tmux scroll buffer size. TIL note about tmux. Use when working with tmux and the user mentions conf scroll buffer size or related topics."

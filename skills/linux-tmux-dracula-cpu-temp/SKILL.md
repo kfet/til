@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: linux-tmux-dracula-cpu-temp
 description: "Show CPU temperature in the tmux status bar via the Dracula theme, with dynamic color based on the value, on Linux (desktops, servers, SBCs, Intel Macs). Update-safe — reads /sys/class/thermal/ with a /sys/class/hwmon/ fallback (coretemp/k10temp) and does not patch the dracula plugin. Use when working with tmux on any Linux box and the user mentions adding a CPU temp segment to the tmux status line."

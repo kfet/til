@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: tmux-conf-ghostty-shift-enter
 description: "Fix Shift+Enter in Ghostty + tmux. TIL note about tmux. Use when working with tmux and the user mentions conf ghostty shift enter or related topics."

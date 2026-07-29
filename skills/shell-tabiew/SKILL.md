@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: shell-tabiew
 description: "Use Tabiew to inspect CSV files. TIL note about shell. Use when working with shell and the user mentions tabiew or related topics."

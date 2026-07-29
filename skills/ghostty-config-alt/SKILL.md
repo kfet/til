@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: ghostty-config-alt
 description: "Configure Ghostty to pass opt as alt. TIL note about ghostty. Use when working with ghostty and the user mentions config alt or related topics."

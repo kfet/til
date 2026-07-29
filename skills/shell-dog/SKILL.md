@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: shell-dog
 description: "Use dog instead of dig. TIL note about shell. Use when working with shell and the user mentions dog or related topics."

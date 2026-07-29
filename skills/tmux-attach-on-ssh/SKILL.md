@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: tmux-attach-on-ssh
 description: "Attach to (or create) a tmux session automatically on interactive SSH login, without breaking scp/rsync or non-interactive agent sessions. Use when working with tmux and the user mentions attaching on ssh, auto-tmux on login, or worries that it will interfere with automation."

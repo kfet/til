@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: git-git-configure
 description: "Git configure defaults. TIL note about git. Use when working with git and the user mentions git configure or related topics."

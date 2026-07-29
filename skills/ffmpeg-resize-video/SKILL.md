@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: ffmpeg-resize-video
 description: "Resize video file using ffmpeg. TIL note about ffmpeg. Use when working with ffmpeg and the user mentions resize video or related topics."

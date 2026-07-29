@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: macos-disable-sleep
 description: "Disable sleep of macOs. TIL note about macos. Use when working with macos and the user mentions disable sleep or related topics."

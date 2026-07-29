@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: ffmpeg-cut-cat-mp4
 description: "Use FFMPEG to cut and concatenate MP4 files. TIL note about ffmpeg. Use when working with ffmpeg and the user mentions cut cat mp4 or related topics."

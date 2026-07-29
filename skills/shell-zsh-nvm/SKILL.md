@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: shell-zsh-nvm
 description: "Install and maintain nvm using the oh-my-zsh zsh-nvm plugin. TIL note about shell. Use when working with shell and the user mentions zsh nvm or related topics."

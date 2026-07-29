@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: linux-event-driven-rsync-backup
 description: "Back up a data directory to a remote host automatically whenever it changes, using inotify + rsync as a systemd user service. TIL note about linux. Use when working with linux and the user mentions event-driven backup, inotify rsync, watch-and-sync, or scheduled/continuous backups."

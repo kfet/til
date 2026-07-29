@@ -1,3 +1,4 @@
+#!/usr/bin/env airan
 ---
 name: python-pipenv
 description: "Manage venv and dependencies using pipenv. TIL note about python. Use when working with python and the user mentions pipenv or related topics."
