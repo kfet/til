@@ -27,6 +27,14 @@ code blocks must declare a language. Shell completion lives under
 
 ## Skill Authoring Conventions
 - Each skill lives at `skills/{topic}-{slug}/SKILL.md`
+- Line 1 is `#!/usr/bin/env airan` and the file is `chmod +x`, so a skill
+  runs directly (`./skills/{slug}/SKILL.md`) via the
+  [airan](https://github.com/kfet/airan) dispatcher. The CLI strips the
+  shebang before parsing and rendering, so it is invisible to
+  `til show`/`list`/`validate`
+- Do **not** set `backend:` in the frontmatter — leave backend resolution
+  to `$AIRAN_BACKEND` then the host default (`airan config NAME`), so a
+  skill runs with whatever agent the host has
 - Frontmatter has `name` (must equal the directory name, lowercase
   letters/digits/hyphens only, ≤64 chars) and `description` (≤1024
   chars; lead with the title, then a "Use when..." activation hint)

@@ -18,6 +18,7 @@ import platform as sys_platform  # Rename to avoid conflicts
 # Import core functionality
 from til_cli.til import (
     TILCollection,
+    TILEntry,
     execute_code_block,
     validate_entry,
     get_til_repo_path,
@@ -378,7 +379,9 @@ def main():
         elif args.command == 'show':
             entry = collection.get_entry(args.entry)
             if entry:
-                render_markdown(entry.path.read_text(), plain=args.plain)
+                render_markdown(
+                    TILEntry.strip_shebang(entry.path.read_text()),
+                    plain=args.plain)
             else:
                 logger.error(f"Entry not found: {args.entry}")
                 return 1

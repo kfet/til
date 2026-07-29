@@ -34,13 +34,28 @@ class TILEntry:
         self._parse()
 
     @staticmethod
+    def strip_shebang(content: str) -> str:
+        """Drop a leading ``#!`` line, if present.
+
+        SKILL.md files carry ``#!/usr/bin/env airan`` so they can be run
+        directly. The shebang is dispatch machinery, not content, so it is
+        stripped before parsing or rendering.
+        """
+        if not content.startswith('#!'):
+            return content
+        newline = content.find('\n')
+        return '' if newline == -1 else content[newline + 1:]
+
+    @staticmethod
     def _split_frontmatter(content: str) -> Tuple[dict, str]:
-        """Strip a leading ``---``-delimited YAML-ish frontmatter block.
+        """Strip an optional shebang, then a leading ``---``-delimited
+        YAML-ish frontmatter block.
 
         Returns ``(frontmatter_dict, remaining_body)``. Only ``key: value``
         pairs on single lines are recognised — enough for SKILL.md, no
         dependency on PyYAML.
         """
+        content = TILEntry.strip_shebang(content)
         if not content.startswith('---\n') and not content.startswith('---\r\n'):
             return {}, content
         # Locate the closing fence on its own line.

@@ -729,3 +729,35 @@ class TestRenderer(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class TestShebang(unittest.TestCase):
+    """SKILL.md files carry ``#!/usr/bin/env airan`` so they run directly."""
+
+    def test_strip_shebang_removes_leading_line(self):
+        from til_cli.til_cli.til import TILEntry
+        self.assertEqual(
+            TILEntry.strip_shebang("#!/usr/bin/env airan\nrest\n"),
+            "rest\n")
+
+    def test_strip_shebang_leaves_other_content_untouched(self):
+        from til_cli.til_cli.til import TILEntry
+        for content in ("---\nname: x\n---\n", "# Heading\n", ""):
+            self.assertEqual(TILEntry.strip_shebang(content), content)
+
+    def test_strip_shebang_handles_shebang_only_file(self):
+        from til_cli.til_cli.til import TILEntry
+        self.assertEqual(TILEntry.strip_shebang("#!/usr/bin/env airan"), "")
+
+    def test_frontmatter_parsed_after_shebang(self):
+        from til_cli.til_cli.til import TILEntry
+        fm, body = TILEntry._split_frontmatter(
+            "#!/usr/bin/env airan\n---\nname: ai-x\n---\n# Title\n")
+        self.assertEqual(fm.get("name"), "ai-x")
+        self.assertEqual(body, "# Title\n")
+
+    def test_frontmatter_still_parsed_without_shebang(self):
+        from til_cli.til_cli.til import TILEntry
+        fm, body = TILEntry._split_frontmatter(
+            "---\nname: ai-x\n---\n# Title\n")
+        self.assertEqual(fm.get("name"), "ai-x")
+        self.assertEqual(body, "# Title\n")
