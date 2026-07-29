@@ -54,7 +54,7 @@ _til() {
     fi
 
     case "$cmd" in
-        show|validate)
+        show|path|run|validate)
             local slugs
             slugs="$(til "${repo_args[@]}" _complete slugs 2>/dev/null)"
             COMPREPLY=( $(compgen -W "$slugs" -- "$cur") )

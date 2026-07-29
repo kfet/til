@@ -727,11 +727,13 @@ class TestRenderer(unittest.TestCase):
         self.assertIn("Body text.", out)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 class TestShebang(unittest.TestCase):
-    """SKILL.md files carry ``#!/usr/bin/env airan`` so they run directly."""
+    """Defensive tolerance for a stray leading ``#!`` line.
+
+    Skills deliberately carry no shebang (byte 0 must be ``---`` or
+    frontmatter parsers drop the file), but the CLI still strips one if
+    it turns up so such a file degrades to "parsed" rather than "dropped".
+    """
 
     def test_strip_shebang_removes_leading_line(self):
         from til_cli.til_cli.til import TILEntry
@@ -761,3 +763,189 @@ class TestShebang(unittest.TestCase):
             "---\nname: ai-x\n---\n# Title\n")
         self.assertEqual(fm.get("name"), "ai-x")
         self.assertEqual(body, "# Title\n")
+
+
+class TestNoShebangsInRepo(unittest.TestCase):
+    """The executable-shebang experiment stays reverted."""
+
+    def test_no_skill_has_a_shebang_or_exec_bit(self):
+        repo = Path(__file__).parent
+        skills = sorted(repo.glob("skills/*/SKILL.md"))
+        self.assertTrue(skills, "no skills found")
+        for skill in skills:
+            with self.subTest(skill=skill.name):
+                first = skill.read_text().split("\n", 1)[0]
+                self.assertFalse(
+                    first.startswith("#!"),
+                    f"{skill} starts with a shebang")
+                self.assertFalse(
+                    os.access(skill, os.X_OK),
+                    f"{skill} is executable")
+
+
+class TestPathCommand(unittest.TestCase):
+    """``til path <slug>`` prints an absolute SKILL.md path."""
+
+    def _repo(self, tmp):
+        skill_dir = Path(tmp) / "skills" / "sample"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: sample\ndescription: \"S. Use when.\"\n"
+            "---\n\n# Sample\n\nBody.\n")
+        return Path(tmp)
+
+    def test_path_prints_absolute_path(self):
+        til_launcher = Path(__file__).parent / "til"
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self._repo(tmp)
+            out = subprocess.check_output(
+                [str(til_launcher), "--repo-path", str(repo),
+                 "path", "sample"], text=True).strip()
+        self.assertTrue(Path(out).is_absolute(), out)
+        self.assertEqual(Path(out).name, "SKILL.md")
+        self.assertEqual(Path(out).parent.name, "sample")
+
+    def test_path_unknown_entry_fails(self):
+        til_launcher = Path(__file__).parent / "til"
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self._repo(tmp)
+            proc = subprocess.run(
+                [str(til_launcher), "--repo-path", str(repo),
+                 "path", "nope-nothing-here"],
+                capture_output=True, text=True)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("not found", proc.stderr.lower())
+
+
+class TestRunCommand(unittest.TestCase):
+    """``til run`` wraps a skill in an imperative and dispatches via airan."""
+
+    def _run_mod(self):
+        from til_cli.til_cli import run as run_mod
+        return run_mod
+
+    def test_build_prompt_prepends_imperative(self):
+        run_mod = self._run_mod()
+        prompt = run_mod.build_prompt("# Sample\n\nBody.\n")
+        self.assertTrue(prompt.startswith(run_mod.IMPERATIVE))
+        # The instruction must precede the note, not trail it.
+        self.assertLess(prompt.index("Apply the following TIL note"),
+                        prompt.index("# Sample"))
+        self.assertIn("Body.", prompt)
+        self.assertIn("BEGIN TIL NOTE", prompt)
+        self.assertIn("END TIL NOTE", prompt)
+
+    def test_build_prompt_normalises_trailing_newline(self):
+        run_mod = self._run_mod()
+        self.assertEqual(run_mod.build_prompt("x"),
+                         run_mod.build_prompt("x\n"))
+
+    def test_missing_airan_is_a_hard_error_with_hint(self):
+        run_mod = self._run_mod()
+        with patch.object(run_mod.shutil, "which", return_value=None):
+            with patch.object(run_mod.subprocess, "run") as mock_run:
+                rc = run_mod.run_with_airan("# S\n")
+        self.assertEqual(rc, 1)
+        mock_run.assert_not_called()
+        message = run_mod.missing_airan_message()
+        self.assertIn("needs airan", message)
+        self.assertIn("install.sh | sh", message)
+
+    def test_dispatches_wrapped_prompt_through_airan(self):
+        run_mod = self._run_mod()
+        seen = {}
+
+        def fake_run(argv, *a, **kw):
+            seen["argv"] = argv
+            seen["content"] = Path(argv[1]).read_text()
+            return MagicMock(returncode=0)
+
+        with patch.object(run_mod.shutil, "which",
+                          return_value="/fake/bin/airan"):
+            with patch.object(run_mod.subprocess, "run", side_effect=fake_run):
+                rc = run_mod.run_with_airan("# Sample\n\nBody.\n",
+                                            slug="sample")
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(seen["argv"][0], "/fake/bin/airan")
+        # airan takes a FILE, so the prompt must reach it via a temp file.
+        self.assertEqual(len(seen["argv"]), 2)
+        self.assertTrue(seen["content"].startswith(run_mod.IMPERATIVE))
+        self.assertIn("Body.", seen["content"])
+        # No backend is pinned: airan owns backend resolution.
+        self.assertNotIn("--backend", seen["argv"])
+
+    def test_temp_file_is_cleaned_up(self):
+        run_mod = self._run_mod()
+        paths = []
+
+        def fake_run(argv, *a, **kw):
+            paths.append(argv[1])
+            return MagicMock(returncode=0)
+
+        with patch.object(run_mod.shutil, "which", return_value="/fake/airan"):
+            with patch.object(run_mod.subprocess, "run", side_effect=fake_run):
+                run_mod.run_with_airan("# S\n")
+        self.assertTrue(paths)
+        self.assertFalse(Path(paths[0]).exists())
+
+    def test_temp_file_cleaned_up_even_when_airan_fails(self):
+        run_mod = self._run_mod()
+        paths = []
+
+        def boom(argv, *a, **kw):
+            paths.append(argv[1])
+            raise OSError("kaboom")
+
+        with patch.object(run_mod.shutil, "which", return_value="/fake/airan"):
+            with patch.object(run_mod.subprocess, "run", side_effect=boom):
+                rc = run_mod.run_with_airan("# S\n")
+        self.assertEqual(rc, 1)
+        self.assertTrue(paths)
+        self.assertFalse(Path(paths[0]).exists())
+
+    def test_child_exit_code_is_propagated(self):
+        run_mod = self._run_mod()
+        with patch.object(run_mod.shutil, "which", return_value="/fake/airan"):
+            with patch.object(run_mod.subprocess, "run",
+                              return_value=MagicMock(returncode=3)):
+                self.assertEqual(run_mod.run_with_airan("# S\n"), 3)
+
+    def test_run_missing_airan_end_to_end(self):
+        """The CLI surfaces the actionable error when airan is absent."""
+        til_launcher = Path(__file__).parent / "til"
+        with tempfile.TemporaryDirectory() as tmp:
+            skill_dir = Path(tmp) / "skills" / "sample"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                "---\nname: sample\ndescription: \"S. Use when.\"\n"
+                "---\n\n# Sample\n\nBody.\n")
+            # A PATH with only the launcher's interpreter on it: no airan.
+            bin_dir = Path(tmp) / "bin"
+            bin_dir.mkdir()
+            import shutil as _shutil
+            uv = _shutil.which("uv")
+            if uv:
+                os.symlink(uv, bin_dir / "uv")
+            env = dict(os.environ, PATH=f"{bin_dir}:/usr/bin:/bin")
+            proc = subprocess.run(
+                [str(til_launcher), "--repo-path", str(tmp), "run", "sample"],
+                capture_output=True, text=True, env=env)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("needs airan", proc.stderr)
+        self.assertIn("install.sh | sh", proc.stderr)
+
+    def test_help_distinguishes_run_from_execute(self):
+        """--help must make the mechanical/agentic split explicit."""
+        til_launcher = Path(__file__).parent / "til"
+        text = subprocess.check_output(
+            [str(til_launcher), "--help"], text=True,
+            stderr=subprocess.STDOUT)
+        self.assertIn("run", text)
+        self.assertIn("path", text)
+        self.assertIn("agent", text)
+        self.assertIn("Mechanically", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

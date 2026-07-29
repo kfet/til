@@ -13,7 +13,9 @@ _til() {
         'list:List TIL entries'
         'search:Search TIL entries'
         'show:Show a TIL entry'
-        'execute:Execute a TIL entry section'
+        'path:Print the absolute path to an entry SKILL.md'
+        'execute:Mechanically run an (executable) section shell blocks'
+        'run:Hand the whole entry to an AI agent (via airan)'
         'validate:Validate TIL entries'
         'version:Show version information'
         'config:Configure TIL repository location'
@@ -31,7 +33,7 @@ _til() {
             ;;
         args)
             case "$words[1]" in
-                show|validate)
+                show|path|run|validate)
                     local slugs
                     slugs=("${(@f)$(til _complete slugs 2>/dev/null)}")
                     _describe -t slugs 'skill slug' slugs

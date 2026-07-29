@@ -50,9 +50,22 @@ A self-contained command-line tool for managing Today I Learned (TIL) entries. U
     path (`skills/ghostty-config-term/SKILL.md`), an absolute path, or
     the entry title
 
-- `execute ENTRY SECTION`: Execute code blocks from a section marked as executable
+- `path ENTRY`: Print the absolute path to that entry's `SKILL.md`
+  - Useful for plumbing: `$EDITOR $(til path ghostty-config-term)`
+
+- `execute ENTRY SECTION`: Mechanically execute the code blocks of a section
+  marked `(executable)` — shell only, with a confirmation prompt, no agent
   - `ENTRY`: skill slug, repository path, absolute path, or title
   - `SECTION`: Section name containing the executable code blocks
+
+- `run ENTRY`: Hand the **whole** entry to an AI coding agent, asking it to
+  apply the TIL to the current host, verify it, and report what changed
+  - Dispatched through [airan](https://github.com/kfet/airan), which must be
+    on `PATH`; it is a soft dependency needed only by this command
+  - No backend is pinned: airan resolves `$AIRAN_BACKEND`, then its
+    configured default, so the entry runs with whatever agent the host has
+  - Contrast with `execute`: `execute` is mechanical (run these shell
+    blocks), `run` is agentic (figure out how to apply this here)
 
 - `validate [ENTRY]`: Validate TIL entries for proper formatting
   - `ENTRY` (optional): skill slug or path (validates all entries if not specified)
@@ -89,6 +102,16 @@ Show a specific entry:
 Execute the Install section of an entry:
 ```
 ./til execute python-til-tests Summary
+```
+
+Print an entry's path (e.g. to edit it):
+```
+$EDITOR $(./til path git-git-configure)
+```
+
+Apply an entry to this host with an AI agent:
+```
+./til run tmux-tpm-install
 ```
 
 Validate all entries:

@@ -28,6 +28,7 @@ from til_cli.til import (
     check_for_repo_updates
 )
 from til_cli.render import render as render_markdown
+from til_cli.run import run_with_airan
 
 # Configure logging
 logging.basicConfig(
@@ -54,7 +55,8 @@ def auto_update_repository(repo_path, command):
 
 
 # Commands that are meaningless without a populated skills repository.
-_NEEDS_ENTRIES = ('list', 'search', 'show', 'execute', 'validate')
+_NEEDS_ENTRIES = ('list', 'search', 'show', 'execute', 'run', 'path',
+                  'validate')
 
 
 def _report_missing_repo(root_dir) -> None:
@@ -78,7 +80,7 @@ def _report_missing_repo(root_dir) -> None:
 # Public, user-facing subcommands. Single source of truth used by both the
 # argument parser and the completion helper.
 _PUBLIC_COMMANDS = (
-    'list', 'search', 'show', 'execute', 'validate',
+    'list', 'search', 'show', 'path', 'execute', 'run', 'validate',
     'version', 'config', 'update',
 )
 
@@ -250,11 +252,26 @@ def main():
             '--plain', action='store_true',
             help='Disable Markdown rendering; print raw text')
 
+        # Path command
+        path_parser = subparsers.add_parser(
+            'path', help="Print the absolute path to a TIL entry's SKILL.md")
+        path_parser.add_argument('entry', help='Entry path or name')
+
         # Execute command
         exec_parser = subparsers.add_parser(
-            'execute', help='Execute a TIL entry section')
+            'execute',
+            help='Mechanically run the shell blocks of an (executable) '
+                 'section (see `run` to hand the whole entry to an agent)')
         exec_parser.add_argument('entry', help='Entry path or name')
         exec_parser.add_argument('section', help='Section name to execute')
+
+        # Run command
+        run_parser = subparsers.add_parser(
+            'run',
+            help='Hand the whole entry to an AI agent (via airan) to apply '
+                 'it to this host (see `execute` to just run its shell '
+                 'blocks)')
+        run_parser.add_argument('entry', help='Entry path or name')
 
         # Validate command
         validate_parser = subparsers.add_parser(
@@ -385,6 +402,25 @@ def main():
             else:
                 logger.error(f"Entry not found: {args.entry}")
                 return 1
+
+        elif args.command == 'path':
+            entry = collection.get_entry(args.entry)
+            if not entry:
+                logger.error(f"Entry not found: {args.entry}")
+                return 1
+            print(entry.path.resolve())
+
+        elif args.command == 'run':
+            entry = collection.get_entry(args.entry)
+            if not entry:
+                logger.error(f"Entry not found: {args.entry}")
+                return 1
+            try:
+                content = TILEntry.strip_shebang(entry.path.read_text())
+            except OSError as exc:
+                logger.error(f"Cannot read {entry.path}: {exc}")
+                return 1
+            return run_with_airan(content, slug=entry.slug)
 
         elif args.command == 'execute':
             entry = collection.get_entry(args.entry)
