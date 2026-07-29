@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: linux-yt-dlp-linux-setup
 description: "Install and Configure yt-dlp on Linux. TIL note about linux. Use when working with linux and the user mentions yt dlp linux setup or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-s5cmd
 description: "Install and use s5cmd. TIL note about shell. Use when working with shell and the user mentions s5cmd or related topics."

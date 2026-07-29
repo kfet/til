@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: linux-ubuntu-rpi-offline-wifi-config
 description: "Offline WiFi Configuration for Ubuntu on Raspberry Pi. TIL note about linux. Use when working with linux and the user mentions ubuntu rpi offline wifi config or related topics."

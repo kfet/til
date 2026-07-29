@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: nodejs-bun
 description: "Install Bun as a Node.js-free JS/TS runtime. TIL note about nodejs. Use when working with nodejs and the user mentions bun or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-dracula-cpu-temp
 description: "Show CPU temperature in the tmux status bar via the Dracula theme, with dynamic color based on the value (cold/normal/warm/hot), in an update-safe way. macOS (Apple Silicon) version using smctemp. Use when working with tmux, dracula/tmux, or the user mentions adding a CPU temp segment to the tmux status line on a Mac."

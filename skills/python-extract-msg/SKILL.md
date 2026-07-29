@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: python-extract-msg
 description: "Extract Outlook msg files. TIL note about python. Use when working with python and the user mentions extract msg or related topics."

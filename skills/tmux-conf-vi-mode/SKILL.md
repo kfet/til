@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-conf-vi-mode
 description: "Use vi mode. TIL note about tmux. Use when working with tmux and the user mentions conf vi mode or related topics."

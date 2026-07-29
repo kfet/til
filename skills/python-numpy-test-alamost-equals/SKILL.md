@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: python-numpy-test-alamost-equals
 description: "Test dataframes equality to a desired precision. TIL note about python. Use when working with python and the user mentions numpy test alamost equals or related topics."

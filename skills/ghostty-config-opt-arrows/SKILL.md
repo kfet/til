@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: ghostty-config-opt-arrows
 description: "Configure Ghostty to pass opt+arrows to child proc. TIL note about ghostty. Use when working with ghostty and the user mentions config opt arrows or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: hx-configure-theme
 description: "Configure theme. TIL note about hx. Use when working with hx and the user mentions configure theme or related topics."

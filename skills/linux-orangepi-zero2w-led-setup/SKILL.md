@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: linux-orangepi-zero2w-led-setup
 description: "Orange Pi Zero 2W - LED Boot Indicator Setup. TIL note about linux. Use when working with linux and the user mentions orangepi zero2w led setup or related topics."

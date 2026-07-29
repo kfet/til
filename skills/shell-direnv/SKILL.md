@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-direnv
 description: "Configure environment per directory. TIL note about shell. Use when working with shell and the user mentions direnv or related topics."

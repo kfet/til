@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-docker-run-as-systemd-service
 description: "Run a docker container as a systemd service. TIL note about shell. Use when working with shell and the user mentions docker run as systemd service or related topics."

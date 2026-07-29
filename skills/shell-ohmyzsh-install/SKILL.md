@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-ohmyzsh-install
 description: "Install Oh My Zsh. TIL note about shell. Use when working with shell and the user mentions ohmyzsh install or related topics."

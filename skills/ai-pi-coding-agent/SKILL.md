@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: ai-pi-coding-agent
 description: "Install the Pi coding agent. TIL note about ai. Use when working with ai and the user mentions pi coding agent or related topics."

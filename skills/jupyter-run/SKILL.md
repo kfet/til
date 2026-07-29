@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: jupyter-run
 description: "Start Jupyter Notebook. TIL note about jupyter. Use when working with jupyter and the user mentions run or related topics."

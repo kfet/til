@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: ai-aider
 description: "Install aider AI pair programming CLI tool. TIL note about ai. Use when working with ai and the user mentions aider or related topics."

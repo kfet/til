@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: vim-vim-defaults
 description: "Vim Defaults. TIL note about vim. Use when working with vim and the user mentions vim defaults or related topics."

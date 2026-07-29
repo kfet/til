@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: python-uv
 description: "Install uv/uvx. TIL note about python. Use when working with python and the user mentions uv or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-list-key-bindings
 description: "List tmux key bindings. TIL note about tmux. Use when working with tmux and the user mentions list key bindings or related topics."

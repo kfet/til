@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-tldr
 description: "Use TLDR pages. TIL note about shell. Use when working with shell and the user mentions tldr or related topics."

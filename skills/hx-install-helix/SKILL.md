@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: hx-install-helix
 description: "Install the Helix editor. TIL note about hx. Use when working with hx and the user mentions install helix or related topics."

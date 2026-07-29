@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-llm
 description: "Install the LLM CLI tool. TIL note about shell. Use when working with shell and the user mentions llm or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: git-git-bash-prompt
 description: "Git in Bash prompt. TIL note about git. Use when working with git and the user mentions git bash prompt or related topics."

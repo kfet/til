@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: ai-claude-code
 description: "Install and use Claude Code. TIL note about ai. Use when working with ai and the user mentions claude code or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-epoch-timestamp
 description: "Confert epoch timestamp to human-readable date. TIL note about shell. Use when working with shell and the user mentions epoch timestamp or related topics."

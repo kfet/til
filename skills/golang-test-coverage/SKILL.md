@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: golang-test-coverage
 description: "Report Go test coverage for all packages. TIL note about golang. Use when working with golang and the user mentions test coverage or related topics."

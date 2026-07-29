@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: jupyter-venv
 description: "Create a kernel running in a python venv. TIL note about jupyter. Use when working with jupyter and the user mentions venv or related topics."

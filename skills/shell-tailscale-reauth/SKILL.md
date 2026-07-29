@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-tailscale-reauth
 description: "Re-authenticate tailscale node with one line. TIL note about shell. Use when working with shell and the user mentions tailscale reauth or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: vim-nvim-kickstart
 description: "Nvim Kickstart. TIL note about vim. Use when working with vim and the user mentions nvim kickstart or related topics."

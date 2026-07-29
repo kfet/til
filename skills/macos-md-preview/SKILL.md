@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: macos-md-preview
 description: "Enable MD quicklook preview. TIL note about macos. Use when working with macos and the user mentions md preview or related topics."

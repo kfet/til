@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-tpm-install
 description: "Install tmux plugin manager tpm. TIL note about tmux. Use when working with tmux and the user mentions tpm install or related topics."

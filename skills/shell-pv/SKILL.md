@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-pv
 description: "Install and use pipe-viewer (pv). TIL note about shell. Use when working with shell and the user mentions pv or related topics."

@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: jupyter-install
 description: "Install Jupyter Notebook. TIL note about jupyter. Use when working with jupyter and the user mentions install or related topics."

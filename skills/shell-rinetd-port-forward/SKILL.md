@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-rinetd-port-forward
 description: "Use rinetd for permanent TCP port forwarding. TIL note about shell. Use when working with shell and the user mentions rinetd port forward or related topics."

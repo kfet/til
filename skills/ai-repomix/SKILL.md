@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: ai-repomix
 description: "Install and use repomix. TIL note about ai. Use when working with ai and the user mentions repomix or related topics."

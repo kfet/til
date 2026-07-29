@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-gs-compress-pdf
 description: "Use Ghostscript to compress PDF files. TIL note about shell. Use when working with shell and the user mentions gs compress pdf or related topics."

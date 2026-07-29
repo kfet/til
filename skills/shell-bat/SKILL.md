@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-bat
 description: "Use bat instead of cat. TIL note about shell. Use when working with shell and the user mentions bat or related topics."

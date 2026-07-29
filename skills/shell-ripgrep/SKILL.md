@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: shell-ripgrep
 description: "Installing and Using Ripgrep on macOS. TIL note about shell. Use when working with shell and the user mentions ripgrep or related topics."

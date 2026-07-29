@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: linux-rpi-zero2w-led-setup
 description: "Raspberry Pi Zero 2 W - LED Boot Indicator Setup. TIL note about linux. Use when working with linux and the user mentions rpi zero2w led setup or related topics."

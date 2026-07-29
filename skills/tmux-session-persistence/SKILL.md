@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-session-persistence
 description: "Persist and restore tmux sessions and windows across a server restart. TIL note about tmux. Use when working with tmux and the user mentions session persistence, resurrect, continuum, restoring windows or cwd after reboot, or related topics."

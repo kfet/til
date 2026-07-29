@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-conf-create-tmux-session-if-none
 description: "Create a new tmux session only if one does not exist. TIL note about tmux. Use when working with tmux and the user mentions conf create tmux session if none or related topics."

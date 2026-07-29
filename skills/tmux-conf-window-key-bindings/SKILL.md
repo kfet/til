@@ -1,4 +1,3 @@
-#!/usr/bin/env airan
 ---
 name: tmux-conf-window-key-bindings
 description: "Bind function keys for window management. TIL note about tmux. Use when working with tmux and the user mentions conf window key bindings or related topics."

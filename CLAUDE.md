@@ -27,14 +27,16 @@ code blocks must declare a language. Shell completion lives under
 
 ## Skill Authoring Conventions
 - Each skill lives at `skills/{topic}-{slug}/SKILL.md`
-- Line 1 is `#!/usr/bin/env airan` and the file is `chmod +x`, so a skill
-  runs directly (`./skills/{slug}/SKILL.md`) via the
-  [airan](https://github.com/kfet/airan) dispatcher. The CLI strips the
-  shebang before parsing and rendering, so it is invisible to
-  `til show`/`list`/`validate`
-- Do **not** set `backend:` in the frontmatter — leave backend resolution
-  to `$AIRAN_BACKEND` then the host default (`airan config NAME`), so a
-  skill runs with whatever agent the host has
+- A SKILL.md is **not** executable and carries **no shebang**: byte 0 must
+  be `---` or frontmatter parsers (including fir's) silently drop the
+  skill. Hand a skill to an agent with `til run <slug>`, which wraps the
+  doc in an "apply this to the current host" imperative and dispatches it
+  through [airan](https://github.com/kfet/airan)
+- `til run` sets no backend — resolution is left to `$AIRAN_BACKEND` then
+  the host default (`airan config NAME`), so a skill runs with whatever
+  agent the host has. airan is a soft dependency: only `til run` needs it
+- The CLI still strips a stray leading `#!` line before parsing/rendering,
+  as defensive tolerance — do not rely on it
 - Frontmatter has `name` (must equal the directory name, lowercase
   letters/digits/hyphens only, ≤64 chars) and `description` (≤1024
   chars; lead with the title, then a "Use when..." activation hint)
