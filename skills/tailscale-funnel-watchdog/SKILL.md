@@ -72,7 +72,11 @@ Fixed in **1.102.2** by PR #20745. Distinguish them in the node's log:
 - `peerapi: ingress: denied; no ingress cap` present → the cap bug, upgrade to ≥1.102.2.
 - no such lines at all → connections never arrive → the #14182 registration bug, use this watchdog.
 
-## Install (executable)
+## Script (executable)
+
+Installs `~/.local/bin/funnel-watchdog`. Then run exactly one of the two
+platform sections below. Section names are deliberately distinct with no shared
+prefix, so `til execute` targets one and only one.
 
 ```bash
 mkdir -p ~/.local/bin
@@ -261,7 +265,10 @@ chmod +x ~/.local/bin/funnel-watchdog
 ~/.local/bin/funnel-watchdog && echo "healthy (silence is good)"
 ```
 
-### macOS -- launchd, every 5 min (executable)
+## macOS launchd (executable)
+
+Every 5 min. `PATH` matters: launchd gives no login shell, and the `tailscale`
+CLI lives in `/usr/local/bin` on macOS.
 
 ```bash
 cat > ~/Library/LaunchAgents/dev.kfet.funnel-watchdog.plist <<PLIST
@@ -288,10 +295,10 @@ launchctl load ~/Library/LaunchAgents/dev.kfet.funnel-watchdog.plist
 launchctl list | grep funnel-watchdog
 ```
 
-`PATH` matters: launchd gives no login shell, and the `tailscale` CLI lives in
-`/usr/local/bin` on macOS.
+## Linux systemd (executable)
 
-### Linux -- systemd user timer, every 5 min (executable)
+Every 5 min. If the funnel is owned by system `tailscaled` and the user cannot
+toggle it, install the same unit under `/etc/systemd/system/` and drop `--user`.
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -319,10 +326,23 @@ systemctl --user enable --now funnel-watchdog.timer
 systemctl --user list-timers funnel-watchdog.timer
 ```
 
-If the funnel is owned by system `tailscaled` and the user cannot toggle it,
-install the same unit under `/etc/systemd/system/` instead and drop `--user`.
-
 ## Usage
+
+Install on a new host that already has the `til` CLI — no copy-paste, and the
+entry stays the single source of truth:
+
+```bash
+til update                                          # pull latest entries
+til execute tailscale-funnel-watchdog "Script"          # install the script
+til execute tailscale-funnel-watchdog "macOS launchd"   # ONE of these
+til execute tailscale-funnel-watchdog "Linux systemd"   # ...or this
+```
+
+`til execute` prompts before running. To reinstall/upgrade later, re-run the
+`Script` section — it overwrites in place, and the running timer picks it up on
+its next tick.
+
+Day to day:
 
 ```bash
 funnel-watchdog            # one probe; silent + exit 0 when healthy
