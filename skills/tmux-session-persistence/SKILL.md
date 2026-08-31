@@ -1,6 +1,6 @@
 ---
 name: tmux-session-persistence
-description: "Persist and restore tmux sessions and windows across a server restart. TIL note about tmux. Use when working with tmux and the user mentions session persistence, resurrect, continuum, restoring windows or cwd after reboot, or related topics."
+description: "Persist and restore tmux sessions and windows across a server restart. TIL note about tmux. Use when working with tmux and the user mentions session persistence, resurrect, continuum, restoring windows or cwd after reboot, manually saving or restoring a snapshot, or a session that failed to restore / was not restored after a crash."
 ---
 
 # Persist and restore tmux sessions and windows across a server restart
@@ -12,7 +12,7 @@ survive a **server kill or reboot**.
 
 | Option | State | Notes |
 |---|---|---|
-| tmux-resurrect + tmux-continuum | 13.0k / 4.0k stars, last push 2024-08 | De-facto standard. Restores panes, layouts, optionally running programs. Zero code with tpm. |
+| tmux-resurrect + tmux-continuum | 13.0k / 4.0k stars, last push 2024-08 | De-facto standard. Restores panes, layouts, optionally running programs. Little config with tpm — but read the resurrect + continuum gotchas first; it fails silently. |
 | script below | tested | ~68 lines, one TSV file, no deps. Use when other tooling must **read** the state. |
 | tmuxp | actively maintained | `tmuxp freeze` → YAML. Good for versioned project layouts. |
 
@@ -27,6 +27,43 @@ set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @plugin 'tmux-plugins/tmux-continuum'
 set -g @continuum-restore 'on'
 ```
+
+## Manual save and restore (resurrect)
+
+Continuum is only automation around resurrect's two scripts. Both are
+callable directly, which is what you want when auto-restore silently
+does nothing (see *Gotchas → resurrect + continuum* below).
+
+| Action | Key | Script |
+|---|---|---|
+| save | `prefix + C-s` | `~/.tmux/plugins/tmux-resurrect/scripts/save.sh` |
+| restore | `prefix + C-r` | `~/.tmux/plugins/tmux-resurrect/scripts/restore.sh` |
+
+```bash
+~/.tmux/plugins/tmux-resurrect/scripts/restore.sh
+```
+
+Restore is safe to run against a live server: `restore.sh` guards with
+`session_exists` / `window_exists` and skips anything already present,
+so it only fills in what is missing. The corollary is that a window
+index already in use is **not** restored — if the crashed server came
+back with a placeholder window at index 0, the saved window 0 is lost.
+
+Snapshots are per-run files plus a `last` symlink:
+
+```bash
+ls -lt ~/.local/share/tmux/resurrect/ | head
+cat  ~/.local/share/tmux/resurrect/last     # TSV: pane/window/state lines
+```
+
+The save directory is **not** `~/.tmux/resurrect` unless that directory
+already exists — `scripts/helpers.sh:1` prefers it only if present,
+otherwise falls back to `${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect`.
+Looking in the documented default and finding nothing proves nothing.
+`@resurrect-dir` overrides both.
+
+A snapshot is readable, so you can confirm what you are about to get
+back before running restore — and recover a cwd list by hand if not.
 
 ## Script route
 
@@ -254,3 +291,67 @@ Verified on tmux 3.4 and 3.7b.
   with no error. Export it to the timer too, or don't set it.
 - **cwd changes are not hookable.** See *Periodic cwd capture* above;
   otherwise cwd is captured at window and session boundaries.
+
+### resurrect + continuum
+
+Verified on tmux 3.7c, resurrect `cff343c`, continuum `0698e8f`.
+
+- **Continuum's multi-server guard silently disables everything.** Both
+  auto-restore and auto-save are gated on
+  `another_tmux_server_running_on_startup` (`continuum/scripts/helpers.sh:46`),
+  which counts every `^tmux` process except your own server and trips at
+  **more than one**:
+
+  ```bash
+  another_tmux_server_running_on_startup() {
+      # there are 2 tmux processes (current tmux server + 1) on tmux startup
+      [ "$(number_tmux_processes_except_current_server)" -gt 1 ]
+  }
+  ```
+
+  The budget of one is your own client. *Any* second server — a
+  `tmux -S .../claude.sock` from an agent tool, a stale `tmux -L test`
+  from testing this very note — makes the count 2 and continuum refuses
+  to act. Nothing is logged. `@continuum-restore` still reads `on`,
+  which is why the config looks correct while doing nothing.
+
+  Reproduce the decision without guessing:
+
+  ```bash
+  cd ~/.tmux/plugins/tmux-continuum/scripts && source ./helpers.sh
+  all_tmux_processes
+  number_tmux_processes_except_current_server
+  another_tmux_server_running_on_startup && echo "restore+save SKIPPED"
+  ```
+
+- **The save half fails the same way, and that is the worse half.** A
+  missed restore is visible; a missed save is not. Check whether
+  auto-save is actually armed for this server:
+
+  ```bash
+  tmux show-option -gv status-right | grep -c continuum_save.sh   # 0 = disabled
+  tmux show-option -gqv @continuum-save-last-timestamp            # empty = never saved
+  ```
+
+  Continuum has no timer — it *prepends* a `#(...continuum_save.sh)`
+  interpolation to `status-right` and lets the status bar redraw drive
+  it. If the guard tripped, the interpolation was never added and
+  snapshots simply stop. Re-arm it by hand, below the tpm line (append
+  is fine; the interpolation prints nothing):
+
+  ```tmux
+  set -ag status-right "#(~/.tmux/plugins/tmux-continuum/scripts/continuum_save.sh)"
+  ```
+
+- **Auto-restore only fires within 10s of server start.**
+  `just_started_tmux_server` compares `#{start_time}` against
+  `@continuum-restore-max-delay` (default 10). A slow plugin load, or
+  sourcing the config by hand later, misses the window — so a manual
+  `restore.sh` is the only route after that point.
+
+- **Restoring processes is opt-in.** Without `@resurrect-processes`,
+  only `@resurrect-default-processes` come back —
+  `vi vim view nvim emacs man less more tail top htop irssi weechat mutt`.
+  Everything else restores as a bare shell in the right cwd. A pane
+  running a long-lived agent, dev server or watcher is *not* relaunched,
+  even on a fully successful restore.
