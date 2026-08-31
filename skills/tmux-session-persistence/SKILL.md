@@ -336,11 +336,42 @@ Verified on tmux 3.7c, resurrect `cff343c`, continuum `0698e8f`.
   Continuum has no timer — it *prepends* a `#(...continuum_save.sh)`
   interpolation to `status-right` and lets the status bar redraw drive
   it. If the guard tripped, the interpolation was never added and
-  snapshots simply stop. Re-arm it by hand, below the tpm line (append
-  is fine; the interpolation prints nothing):
+  snapshots simply stop.
+
+  Clearing the cause does not undo the effect: the guard is evaluated
+  **once, at plugin load**. Killing the second server later leaves
+  `status-right` still bare and saves still dead, with no hint anything
+  is wrong. Re-arm the running server by re-running the plugin script —
+  not `source-file ~/.tmux.conf`, which re-executes any top-level
+  `new-session` and spawns a phantom session:
+
+  ```bash
+  ~/.tmux/plugins/tmux-continuum/continuum.tmux   # re-runs the guard, arms save
+  ~/.tmux/plugins/tmux-resurrect/scripts/save.sh  # first auto-save is 15min out
+  ```
+
+  This is safe on a long-running server: `just_started_tmux_server` is
+  false past `@continuum-restore-max-delay`, so re-running the plugin
+  arms saving **without** triggering a restore.
+
+  To survive the next server start, re-arm from `~/.tmux.conf` below the
+  tpm line. The path must be the **literal absolute path**, not `~` or
+  `$HOME` — continuum's idempotence check is a substring match against
+  its own resolved `#($CURRENT_DIR/scripts/continuum_save.sh)`, so any
+  other spelling fails to match and continuum adds a second copy on the
+  next config reload. `set -ag` never checks either, hence the
+  `if-shell` guard:
 
   ```tmux
-  set -ag status-right "#(~/.tmux/plugins/tmux-continuum/scripts/continuum_save.sh)"
+  if-shell '! tmux show-option -gv status-right | grep -q continuum_save.sh' \
+    'set -ag status-right "#(/Users/YOU/.tmux/plugins/tmux-continuum/scripts/continuum_save.sh)"'
+  ```
+
+  Confirm the string you need rather than typing it — after a load where
+  continuum did arm itself:
+
+  ```bash
+  tmux show-option -gv status-right | grep -o '#([^)]*continuum_save.sh)'
   ```
 
 - **Auto-restore only fires within 10s of server start.**
