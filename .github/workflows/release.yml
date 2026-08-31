@@ -48,7 +48,7 @@ jobs:
       # ---- Homebrew tap update --------------------------------------------
       # Renders Formula/til.rb from homebrew/til.rb.template, then commits and
       # pushes it to github.com/kfet/homebrew-til. Requires a repo secret
-      # HOMEBREW_TAP_TOKEN with contents:write on the tap repo.
+      # HOMEBREW_TAP_SSH_KEY — ssh private key of a WRITE deploy key on the tap.
       - name: Render Homebrew formula
         run: |
           mkdir -p tap/Formula
@@ -59,20 +59,36 @@ jobs:
 
       - name: Push to homebrew-til tap
         env:
-          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # ssh private key of a WRITE deploy key on the tap repo, unique to
+          # this repository. Repo-scoped and non-expiring, unlike the
+          # account-wide fine-grained PAT it replaces; revoking it here
+          # cannot break any sibling project's release.
+          TAP_SSH_KEY: ${{ secrets.HOMEBREW_TAP_SSH_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${TAP_TOKEN:-}" ]; then
-            echo "::warning::HOMEBREW_TAP_TOKEN not set; skipping tap update"
+          if [ -z "${TAP_SSH_KEY:-}" ]; then
+            echo "::warning::HOMEBREW_TAP_SSH_KEY not set; skipping tap update"
             exit 0
           fi
 
+          # Write the deploy key and pin github.com's host key. Do NOT use
+          # StrictHostKeyChecking=accept-new here: a runner is ephemeral, so
+          # trust-on-first-use is trust-on-EVERY-use and buys nothing. The
+          # ed25519 key below is the one published at `gh api meta`.
+          key=$(mktemp)
+          printf '%s\n' "$TAP_SSH_KEY" > "$key"; chmod 600 "$key"
+          hosts=$(mktemp)
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$hosts"
+          export GIT_SSH_COMMAND="ssh -i '$key' -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile='$hosts'"
+
           ver="${GITHUB_REF_NAME#v}"
           tmp=$(mktemp -d)
-          trap 'rm -rf "$tmp"' EXIT
+          # One EXIT trap only — a second `trap ... EXIT` replaces this one,
+          # so the key and known_hosts files are cleaned up here too.
+          trap 'rm -rf "$tmp"; rm -f "$key" "$hosts"' EXIT
 
-          git clone --depth 1 \
-            "https://x-access-token:${TAP_TOKEN}@github.com/kfet/homebrew-til.git" \
+          git clone \
+            git@github.com:kfet/homebrew-til.git \
             "$tmp/tap"
           mkdir -p "$tmp/tap/Formula"
           cp tap/Formula/til.rb "$tmp/tap/Formula/til.rb"
@@ -86,4 +102,11 @@ jobs:
             exit 0
           fi
           git commit -m "til: update to v${ver}"
-          git push origin HEAD
+          # Two projects releasing at once race on this shared tap, and the
+          # loser gets a non-fast-forward rejection. Rebase and retry.
+          for attempt in 1 2 3; do
+            git push origin HEAD && break
+            echo "push rejected (attempt $attempt); rebasing on the tap"
+            git pull --rebase origin HEAD
+            if [ "$attempt" = 3 ]; then exit 1; fi
+          done

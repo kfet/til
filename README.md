@@ -86,7 +86,7 @@ plain text.
 ## Release
 
 Push a `vX.Y.Z` tag to create a GitHub release and render `Formula/til.rb` into
-the `kfet/homebrew-til` tap. The release workflow needs a `HOMEBREW_TAP_TOKEN`
+the `kfet/homebrew-til` tap. The release workflow needs a `HOMEBREW_TAP_SSH_KEY`
 secret with write access to that tap.
 
 ## License
