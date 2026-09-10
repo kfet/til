@@ -5,31 +5,61 @@ description: "Run a docker container as a systemd service. TIL note about shell.
 
 # Run a docker container as a systemd service
 
-Example for transmission client linuxserver/transmission:
+Wrap the `docker run` in a script, then point a unit at the script. Use
+`--rm` so a restart never collides with a leftover container, and let systemd
+own the restart policy rather than docker.
+
+Example for the `linuxserver/transmission` image. Substitute your own user and
+paths — `$USER`/`$HOME` here, literal values in the unit file:
+
 ```bash
-cat ~/bin/transsmission.sh
+cat ~/bin/transmission.sh
+#!/bin/sh
 docker run --rm \
--v /home/kfet/Downloads/transmission/config:/config \
--v /home/kfet/Downloads/transmission:/downloads \
--v /home/kfet/Downloads/transmission/watch:/watch \
--e PGID=1000 -e PUID=1000 \
--p 9091:9091 -p 51413:51413 \
--p 51413:51413/udp \
---name transmission \
-linuxserver/transmission
+  -v "$HOME/Downloads/transmission/config:/config" \
+  -v "$HOME/Downloads/transmission:/downloads" \
+  -v "$HOME/Downloads/transmission/watch:/watch" \
+  -e PGID="$(id -g)" -e PUID="$(id -u)" \
+  -p 9091:9091 \
+  -p 51413:51413 \
+  -p 51413:51413/udp \
+  --name transmission \
+  linuxserver/transmission
 ```
 
-```bash
-cat /etc/systemd/system/transmission.service
+The unit file cannot expand `$HOME`, so write the absolute path there:
+
+```ini
+# /etc/systemd/system/transmission.service
 [Unit]
 Description=Transmission Torrent Client
+After=docker.service
+Requires=docker.service
 
 [Service]
-ExecStart=/bin/sh -C '/home/kfet/bin/transmission'
+ExecStart=/bin/sh -c '/home/YOUR_USER/bin/transmission.sh'
+ExecStop=/usr/bin/docker stop transmission
 Restart=always
-User=kfet
-Group=kfet
+RestartSec=5
+User=YOUR_USER
+Group=YOUR_USER
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+```bash
+chmod +x ~/bin/transmission.sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now transmission
+systemctl status transmission
+```
+
+Notes:
+
+- `After=/Requires=docker.service` stops the unit racing the docker daemon at
+  boot, which otherwise fails on the first start after a reboot.
+- `ExecStop` matters because `docker run` in the foreground does not always
+  forward SIGTERM to the container.
+- For a rootless alternative, a `~/.config/systemd/user/` unit plus
+  `loginctl enable-linger $USER` avoids needing `User=` at all.
