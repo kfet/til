@@ -1,21 +1,13 @@
 ---
 name: shell-zsh-nvm
-description: "Load nvm in zsh without paying its ~2s startup cost — lazy shims instead of sourcing nvm.sh. TIL note about shell. Use when setting up node/nvm in zsh, when a shell is slow to open and nvm is in .zshrc, or when the oh-my-zsh zsh-nvm plugin is mentioned."
+description: "Load nvm in zsh lazily instead of sourcing nvm.sh at every startup. TIL note about shell. Use when setting up node/nvm in zsh, or when a shell is slow to open and nvm is in .zshrc."
 ---
 
 # Lazy-load nvm in zsh
 
-`nvm.sh` is a large shell script. Sourcing it at every shell start is
-routinely the single most expensive line in a `.zshrc` — measured at **~2s**
-on one machine (direct `source`) and **~515ms** on another (via the `zsh-nvm`
-oh-my-zsh plugin). That is paid on every new terminal, tmux pane and ssh
-login. Slow storage makes it worse.
-
-You almost never need nvm itself — you need `node` on `PATH`. So put the
-default version's bin directory on `PATH` directly, and defer the rest until
-something actually calls `nvm`, `node`, `npm` or `npx`.
-
-## The lazy setup (no framework)
+Sourcing `nvm.sh` at startup is routinely the most expensive line in a
+`.zshrc` — measured at ~2s on slow storage, ~515ms via the `zsh-nvm` plugin.
+You rarely need nvm itself, only `node` on `PATH`:
 
 ```zsh
 export NVM_DIR="$HOME/.nvm"
@@ -28,7 +20,6 @@ if [[ -s "$NVM_DIR/nvm.sh" ]]; then
     done
     unset _nvm_def _d
   fi
-
   _nvm_load() {
     unfunction nvm node npm npx 2>/dev/null
     source "$NVM_DIR/nvm.sh"
@@ -41,44 +32,20 @@ if [[ -s "$NVM_DIR/nvm.sh" ]]; then
 fi
 ```
 
-The shims `unfunction` themselves before delegating, so the cost is paid once
-per shell and only if you actually use node.
-
-Verify it still works:
+The shims `unfunction` themselves before delegating, so the real load happens
+once per shell and only if used. Verify:
 
 ```bash
 zsh -i -c 'node -v; nvm current'
 ```
 
-## Installing nvm itself
+The nvm installer appends an eager `source` block to `~/.zshrc` — delete it
+and use the above.
 
-```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
-```
-
-The installer appends an eager `source` block to `~/.zshrc` — delete it and
-use the lazy block above instead.
-
-## Do not use the zsh-nvm plugin
-
-The older advice was to clone `lukechilds/zsh-nvm` into
-`~/.oh-my-zsh/custom/plugins/` and add it to `plugins=(...)`. That pulls in a
-whole framework for one feature, and in its default eager mode the plugin
-still cost ~515ms per shell. See `shell-zsh-startup-profiling`.
-
-If you are stuck on oh-my-zsh and cannot remove it, the plugin does support
-lazy mode — but it must be set **before** the plugin is sourced, i.e. above
-the `plugins=(...)` line:
+If you are stuck on the oh-my-zsh `zsh-nvm` plugin, it has a lazy mode, but it
+must be set *above* the `plugins=(...)` line:
 
 ```zsh
 export NVM_LAZY_LOAD=true
 export NVM_COMPLETION=false
-plugins=(git zsh-nvm)
 ```
-
-On one machine that alone took startup from 646ms to 164ms. The
-framework-free block above is still preferable: no dependency, same
-behaviour.
-
-Refs: [nvm](https://github.com/nvm-sh/nvm) ·
-[zsh-nvm](https://github.com/lukechilds/zsh-nvm)
