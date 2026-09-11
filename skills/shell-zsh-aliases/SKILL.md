@@ -18,14 +18,8 @@ Anywhere after the options block:
 alias l='ls -lah'
 alias ll='ls -lh'
 alias la='ls -lAh'
-```
 
-On BSD/macOS add:
-```zsh
-alias ls='ls -G'
-```
-
-On Linux add:
-```zsh
-alias ls='ls --color=auto'
+# NOTE: platform specfic!!!
+alias ls='ls -G' # BSD/macOS ONLY
+alias ls='ls --color=auto' # Linux ONLY
 ```
