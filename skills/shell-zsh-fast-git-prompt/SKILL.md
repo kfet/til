@@ -4,10 +4,11 @@ description: "Show the git branch, and a dirty marker, in a zsh prompt. Very fas
 ---
 
 In `~/.zshrc`:
+
 ```zsh
 setopt prompt_subst
 
-_git_branch() {
+git_prompt_branch() {
   REPLY=""
   local d=$PWD g
   while [[ $d != / ]]; do
@@ -28,23 +29,7 @@ _git_branch() {
 
 # If you already have a `precmd`, merge rather than replace
 precmd() {
-  _git_branch
-  if [[ -n $REPLY ]]; then _pgit=" %F{blue}git:(%F{red}${REPLY}%F{blue})%f"
-  else _pgit=''; fi
-}
-
-PROMPT='%(?:%F{green}➜:%F{red}➜)%f %F{cyan}%c%f${_pgit} '
-```
-
-## Dirty marker
-
-The branch is free; dirty is not — nothing in `.git` records it, so it costs a
-`git` fork. ~17-22ms per prompt on macOS, scales with tracked files.
-
-Synchronous — replace the `precmd` above:
-```zsh
-precmd() {
-  _git_branch
+  git_prompt_branch
   if [[ -n $REPLY ]]; then
     local dirty=''
     # --no-optional-locks: don't rewrite .git/index and contend for the lock
@@ -55,28 +40,15 @@ precmd() {
     _pgit=" %F{blue}git:(%F{red}${REPLY}%F{blue})%f${dirty}"
   else _pgit=''; fi
 }
+
+PROMPT='%(?:%F{green}➜:%F{red}➜)%f %F{cyan}%c%f${_pgit} '
 ```
 
-Async — prompt stays instant, `✗` lands a beat later:
-```zsh
-typeset -g _pgit='' _pdirty=''
-
-_dirty_cb() {
-  local fd=$1 line new=''
-  if read -r line <&$fd; then [[ -n $line ]] && new=' %F{yellow}✗%f'; fi
-  zle -F $fd; exec {fd}<&-          # MUST do both, else an fd leaks per prompt
-  [[ $new == $_pdirty ]] && return  # skip redraw or the line flickers on Enter
-  _pdirty=$new; zle reset-prompt
-}
-
-precmd() {
-  _git_branch
-  if [[ -n $REPLY ]]; then _pgit=" %F{blue}git:(%F{red}${REPLY}%F{blue})%f"
-  else _pgit=''; _pdirty=''; return; fi   # clear, or a stale ✗ follows you out
-  local fd
-  exec {fd}< <(command git --no-optional-locks status --porcelain 2>/dev/null | head -1)
-  zle -F $fd _dirty_cb
-}
-
-PROMPT='%(?:%F{green}➜:%F{red}➜)%f %F{cyan}%c%f${_pgit}${_pdirty} '
+NOTE: Do NOT name these functions `_git_branch`, or anything matching `_git_*` —
+zsh's git completion dispatches `git <sub> <TAB>` to `_git_${sub}` and will run
+your prompt function under `emulate ksh` instead. Symptom, intermittent:
 ```
+_git_branch:4: parse error: condition expected: 1
+__gitcomp_direct:compset:4: can only be called from completion function
+```
+Leading `_` is the completion namespace generally. Keep prompt functions out.
