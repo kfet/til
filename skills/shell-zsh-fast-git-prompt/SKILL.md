@@ -22,7 +22,7 @@ git_prompt_branch() {
   fi
   local head
   head=$(<$g/HEAD) 2>/dev/null || return
-  if [[ $head == ref:* ]]; then REPLY=${head##*/}   # branch
+  if [[ $head == ref:* ]]; then REPLY=${head#ref: refs/heads/}   # branch
   else REPLY=${head[1,7]}                            # detached: short sha
   fi
 }
@@ -52,3 +52,14 @@ _git_branch:4: parse error: condition expected: 1
 __gitcomp_direct:compset:4: can only be called from completion function
 ```
 Leading `_` is the completion namespace generally. Keep prompt functions out.
+
+Note `PROMPT` uses single quotes — `${_pgit}` must stay unexpanded until each
+prompt is drawn.
+
+Gotcha: strip the prefix with `${head#ref: refs/heads/}`, not `${head##*/}`.
+`##*/` cuts at the last slash, so `work/box-cgroup-quota` shows as
+`box-cgroup-quota`.
+
+Gotcha: do **not** put `%F{...}` inside `${...:+...}` — the `{` closes the
+expansion early and you get literal `master)}` in your prompt. Build the
+coloured segment in `precmd`, as above.
