@@ -11,8 +11,10 @@ setopt prompt_subst
 git_prompt_branch() {
   REPLY=""
   local d=$PWD g
+  [[ $d == /* ]] || return                      # deleted cwd: $PWD can be '.'
   while [[ $d != / ]]; do
     [[ -e $d/.git ]] && { g=$d/.git; break }
+    [[ ${d:h} == $d ]] && return                # no progress: stop, never spin
     d=${d:h}
   done
   [[ -n $g ]] || return
