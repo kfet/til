@@ -21,6 +21,7 @@ git_prompt_branch() {
   if [[ -f $g ]]; then                          # worktrees / submodules
     local gd=$(<$g)
     g=${gd#gitdir: }
+    [[ $g == /* ]] || g=$d/$g                   # relative gitdir (worktree.useRelativePaths)
   fi
   local head
   head=$(<$g/HEAD) 2>/dev/null || return
@@ -57,6 +58,11 @@ Leading `_` is the completion namespace generally. Keep prompt functions out.
 
 Note `PROMPT` uses single quotes — `${_pgit}` must stay unexpanded until each
 prompt is drawn.
+
+Gotcha: a worktree's `.git` file can hold a **relative** `gitdir:` path
+(`git worktree add --relative-paths`, `worktree.useRelativePaths`, or tools
+like `git wt`). It is relative to the worktree root, not `$PWD`. Without the
+`$d/` prefix, `HEAD` is not found and the branch silently disappears.
 
 Gotcha: strip the prefix with `${head#ref: refs/heads/}`, not `${head##*/}`.
 `##*/` cuts at the last slash, so `work/box-cgroup-quota` shows as
