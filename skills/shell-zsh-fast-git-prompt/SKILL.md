@@ -64,6 +64,11 @@ Gotcha: a worktree's `.git` file can hold a **relative** `gitdir:` path
 like `git wt`). It is relative to the worktree root, not `$PWD`. Without the
 `$d/` prefix, `HEAD` is not found and the branch silently disappears.
 
+Gotcha: do **not** squash the gitdir read into the one-liner
+`g=${$(<$g)#gitdir: }`. The `#gitdir: ` strip silently does not apply, `g`
+keeps the `gitdir: ` prefix, `HEAD` is not found, and every worktree shows no
+branch. Read into a local first, then strip, as above.
+
 Gotcha: strip the prefix with `${head#ref: refs/heads/}`, not `${head##*/}`.
 `##*/` cuts at the last slash, so `work/box-cgroup-quota` shows as
 `box-cgroup-quota`.
