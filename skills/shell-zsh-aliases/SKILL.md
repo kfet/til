@@ -3,6 +3,8 @@ name: shell-zsh-aliases
 description: "The zsh ls/history/option aliases worth defining by hand, like l/ll/la"
 ---
 
+# Zsh aliases and options worth defining by hand
+
 In `~/.zshrc`.
 
 Options (`setopts`) block:

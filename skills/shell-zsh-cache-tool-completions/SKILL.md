@@ -3,6 +3,8 @@ name: shell-zsh-cache-tool-completions
 description: "Replace eval-based completions with cached files, no subprocesses."
 ---
 
+# Cache tool completions in zsh
+
 Run once. Re-run after upgrading the tools.
 
 ```bash

@@ -3,6 +3,8 @@ name: shell-zsh-nvm
 description: "Load nvm in zsh lazily instead of sourcing nvm.sh at every startup."
 ---
 
+# Load nvm lazily in zsh
+
 In `.zshrc`:
 ```zsh
 export NVM_DIR="$HOME/.nvm"

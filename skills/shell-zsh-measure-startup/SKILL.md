@@ -3,6 +3,8 @@ name: shell-zsh-measure-startup
 description: "Measure and profile zsh startup time."
 ---
 
+# Measure and profile zsh startup time
+
 Median of 5, portable (macOS has no `/usr/bin/time -f`):
 
 ```zsh

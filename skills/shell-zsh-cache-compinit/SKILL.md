@@ -3,6 +3,8 @@ name: shell-zsh-cache-compinit
 description: "Cache and compile the zsh completion dump so compinit is fast."
 ---
 
+# Cache and compile the zsh completion dump
+
 NOTE: Only useful if your rc owns `compinit`
 
 In `~/.zshrc`, after any `fpath=(...)` lines and before anything that calls `compdef` or defines completions.

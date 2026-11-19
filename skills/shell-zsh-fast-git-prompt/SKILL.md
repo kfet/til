@@ -3,6 +3,8 @@ name: shell-zsh-fast-git-prompt
 description: "Show the git branch, and a dirty marker, in a zsh prompt. Very fast."
 ---
 
+# Fast git branch in the zsh prompt
+
 In `~/.zshrc`:
 
 ```zsh
@@ -50,7 +52,7 @@ PROMPT='%(?:%F{green}➜:%F{red}➜)%f %F{cyan}%c%f${_pgit} '
 NOTE: Do NOT name these functions `_git_branch`, or anything matching `_git_*` —
 zsh's git completion dispatches `git <sub> <TAB>` to `_git_${sub}` and will run
 your prompt function under `emulate ksh` instead. Symptom, intermittent:
-```
+```text
 _git_branch:4: parse error: condition expected: 1
 __gitcomp_direct:compset:4: can only be called from completion function
 ```
