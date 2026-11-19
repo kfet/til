@@ -1,7 +1,7 @@
 #!/bin/bash
 # TIL Tool Installer Script
 #
-# Installs the `til` CLI via pipx, clones (or updates) the skills
+# Installs the `til` CLI via uv (preferred) or pipx, clones (or updates) the skills
 # repository, optionally drops shell completion into the right place,
 # and prints a clear post-install summary with PATH guidance.
 
@@ -62,8 +62,8 @@ if [ "$UNINSTALL" = yes ]; then
     printf '  Uninstalling TIL CLI Tool\n'
     printf '=============================================\n\n'
 
-    # A Homebrew install must never be removed with pipx: they are
-    # different installations, and pipx would silently report nothing to
+    # A Homebrew install must never be removed with uv/pipx: they are
+    # different installations, and uv/pipx would silently report nothing to
     # do while leaving the brew copy on PATH.
     til_path="$(command -v til 2>/dev/null || true)"
     case "$til_path" in
@@ -74,9 +74,12 @@ if [ "$UNINSTALL" = yes ]; then
             ;;
     esac
 
+    uv_has_til()   { has uv   && uv tool list --color never 2>/dev/null | grep -q '^til-cli '; }
+    pipx_has_til() { has pipx && pipx list 2>/dev/null | grep -q 'package til-cli'; }
+
     targets=()
-    has pipx && pipx list 2>/dev/null | grep -q 'package til-cli' \
-        && targets+=("pipx package til-cli")
+    uv_has_til   && targets+=("uv tool til-cli")
+    pipx_has_til && targets+=("pipx package til-cli")
     for f in "$HOME/.local/share/bash-completion/completions/til" \
              "$HOME/.zsh/completions/_til" \
              "$HOME/.tilconfig" \
@@ -104,7 +107,12 @@ if [ "$UNINSTALL" = yes ]; then
         esac
     fi
 
-    if has pipx && pipx list 2>/dev/null | grep -q 'package til-cli'; then
+    if uv_has_til; then
+        uv tool uninstall til-cli >/dev/null 2>&1 \
+            && ok "removed uv tool til-cli" \
+            || warn "uv tool uninstall til-cli failed — remove it manually"
+    fi
+    if pipx_has_til; then
         pipx uninstall til-cli >/dev/null 2>&1 \
             && ok "removed pipx package til-cli" \
             || warn "pipx uninstall til-cli failed — remove it manually"
@@ -141,46 +149,45 @@ printf '\n=============================================\n'
 printf '  Installing TIL CLI Tool\n'
 printf '=============================================\n\n'
 
-# ----------------------------- pipx ----------------------------------------
-install_pipx() {
-    # Ubuntu 24.04 / Debian 12+ ship PEP 668 "externally managed"
-    # interpreters where `pip install --user` hard-fails, and a fresh
-    # Ubuntu Server has no `pip` at all. Prefer the OS package manager,
-    # which is the supported route on those systems.
-    if has apt-get; then
-        note "Installing pipx via apt..."
-        sudo apt-get update -qq && sudo apt-get install -y pipx && return 0
-    elif has dnf; then
-        note "Installing pipx via dnf..."
-        sudo dnf install -y pipx && return 0
-    elif has brew; then
-        note "Installing pipx via Homebrew..."
-        brew install pipx && return 0
+# ----------------------------- uv / pipx -----------------------------------
+# Use whichever tool installer is already present — uv first, then pipx.
+# If neither is available, install uv (standalone, no system Python
+# packaging involved, so PEP 668 is a non-issue).
+install_uv() {
+    if has curl; then
+        note "Installing uv via astral.sh installer..."
+        curl -LsSf https://astral.sh/uv/install.sh | sh && return 0
+    elif has wget; then
+        note "Installing uv via astral.sh installer..."
+        wget -qO- https://astral.sh/uv/install.sh | sh && return 0
     fi
-
-    note "Installing pipx via pip..."
-    if python3 -m pip install --user pipx 2>/dev/null; then
-        return 0
+    if has brew; then
+        note "Installing uv via Homebrew..."
+        brew install uv && return 0
     fi
-    # Last resort on PEP 668 systems without a packaged pipx.
-    python3 -m pip install --user --break-system-packages pipx
+    return 1
 }
 
-if ! has pipx; then
-    install_pipx || {
-        err "Could not install pipx automatically."
-        warn "Install it with your package manager, then re-run install.sh:"
-        warn "  apt install pipx   |   dnf install pipx   |   brew install pipx"
+if has uv; then
+    INSTALLER=uv
+elif has pipx; then
+    INSTALLER=pipx
+else
+    install_uv || {
+        err "Could not install uv automatically."
+        warn "Install uv (https://docs.astral.sh/uv/) or pipx, then re-run install.sh:"
+        warn "  curl -LsSf https://astral.sh/uv/install.sh | sh   |   brew install uv"
         exit 1
     }
-    export PATH="$PATH:$HOME/.local/bin"
-    if ! has pipx; then
-        err "pipx installation succeeded but command not found on PATH."
-        warn "Run:   export PATH=\"\$PATH:\$HOME/.local/bin\"   then re-run install.sh"
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+    if ! has uv; then
+        err "uv installation succeeded but command not found on PATH."
+        warn "Run:   export PATH=\"\$HOME/.local/bin:\$PATH\"   then re-run install.sh"
         exit 1
     fi
-    pipx ensurepath >/dev/null
+    INSTALLER=uv
 fi
+ok "Using $INSTALLER ($(command -v "$INSTALLER"))"
 
 # ----------------------------- repo clone ----------------------------------
 if [[ ! -d "$REPO_DIR" ]]; then
@@ -192,18 +199,24 @@ else
         warn "git pull failed; continuing with existing checkout"
 fi
 
-# ----------------------------- pipx install --------------------------------
-note "Installing TIL CLI tool..."
-(cd "$REPO_DIR/til_cli" && pipx install --force . >/dev/null)
+# ----------------------------- tool install --------------------------------
+note "Installing TIL CLI tool with $INSTALLER..."
+if [ "$INSTALLER" = uv ]; then
+    (cd "$REPO_DIR/til_cli" && uv tool install --quiet --force --reinstall . >/dev/null)
+    TOOL_BIN="$(uv tool dir --bin --color never 2>/dev/null || echo "$HOME/.local/bin")"
+else
+    (cd "$REPO_DIR/til_cli" && pipx install --force . >/dev/null)
+    TOOL_BIN="$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
+fi
 
 # Make sure ``til`` is reachable for the configure step below.
-PIPX_BIN="$(pipx environment --value PIPX_BIN_DIR 2>/dev/null || echo "$HOME/.local/bin")"
-export PATH="$PATH:$PIPX_BIN"
+export PATH="$PATH:$TOOL_BIN"
 
 if ! has til; then
-    err "'til' was installed by pipx but is not on PATH (looked under $PIPX_BIN)."
+    err "'til' was installed by $INSTALLER but is not on PATH (looked under $TOOL_BIN)."
     warn "Add this to your shell rc and reopen the shell:"
-    warn "  export PATH=\"\$PATH:$PIPX_BIN\""
+    warn "  export PATH=\"\$PATH:$TOOL_BIN\""
+    [ "$INSTALLER" = uv ] && warn "  (or run:  uv tool update-shell)"
     exit 1
 fi
 

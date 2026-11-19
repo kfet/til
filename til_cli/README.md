@@ -35,7 +35,7 @@ cd til
 ```
 
 The installer script will:
-1. Install pipx if not already installed
+1. Use uv (or pipx) if already installed, otherwise install uv
 2. Clone the repository to ~/.til-repo
 3. Install the TIL CLI tool globally
 4. Configure the repository location
@@ -47,8 +47,8 @@ The installer script will:
 git clone https://github.com/kfet/til.git
 cd til
 
-# Install with pipx (recommended for CLI tools)
-pipx install ./til_cli
+# Install with uv (or: pipx install ./til_cli)
+uv tool install ./til_cli
 
 # Configure the repository location
 til config /path/to/til/repo
